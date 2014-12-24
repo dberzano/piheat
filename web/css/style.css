@@ -11,3 +11,7 @@
 .piheat-header p {
   color: #cdbfe3;
 }
+
+body {
+  font-family: "Helvetica Neue" !important;
+}
