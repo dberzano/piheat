@@ -1,7 +1,7 @@
 /* misc.js -- by Dario Berzano <dario.berzano@gmail.com>
  */
 
-(function($) {
+(function($, cfg) {
 
   var heating_status = {
     'on': '#heating-status-on',
@@ -22,12 +22,18 @@
     'password': '#input-password'
   }
 
+  var texts = {
+    'thingname': '#text-thingname'
+  }
+
   var encryption_password = '';
 
   var init = function() {
 
     $(pages.control).hide();
     $(pages.password).show();
+
+    $(texts.thingname).text( cfg.thingid );
 
     $(controls.password).click(function () {
       // password button pressed
@@ -41,4 +47,4 @@
   // entry point
   $(document).ready( init );
 
-})(jQuery);
+})(jQuery, piheat_config);
