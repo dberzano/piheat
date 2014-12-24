@@ -11,7 +11,9 @@
 
   var update_status = {
     'updating': '#update-status-updating',
-    'updated': '#update-status-updated'
+    'updated': '#update-status-updated',
+    'failure': '#update-status-failure',
+    'sent': '#update-status-sent'
   };
 
   var pages = {
@@ -58,8 +60,6 @@
       $(heating_status.on).hide();
       $(heating_status.off).hide();
       $(heating_status.unknown).show();
-      $(update_status.updating).hide();
-      $(update_status.updated).hide();
       $(control_containers.turnoff).hide();
       $(control_containers.turnon).hide();
 
@@ -73,15 +73,38 @@
   var Control = {
 
     Request : {
-      on : 1,
-      off : 2,
-      status : 3
+      on : 'on',
+      off : 'off',
+      status : 'status'
     },
 
     read_status : function() {
     },
 
     push_request : function(req) {
+
+      $.each( update_status, function(key, value) {
+        if (key == 'sent') $(value).show();
+        else $(value).hide();
+      });
+
+      $.post(
+        'https://dweet.io/dweet/for/'+cfg.thingid,
+        { command: req }
+      )
+        .done( function() {
+          $.each( update_status, function(key, value) {
+            if (key == 'updating') $(value).show();
+            else $(value).hide();
+          });
+        })
+        .fail( function() {
+          $.each( update_status, function(key, value) {
+            if (key == 'failure') $(value).show();
+            else $(value).hide();
+          });
+        });
+
     }
 
   };
