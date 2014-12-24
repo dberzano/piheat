@@ -10,11 +10,13 @@
   };
 
   var update_status = {
-    'updating': '#update-status-updating',
     'updated': '#update-status-updated',
-    'failure': '#update-status-failure',
-    'sent': '#update-status-sent'
+    'error': '#update-status-error'
   };
+
+  var request_status = {
+    'error': '#request-status-error'
+  }
 
   var pages = {
     'password': '#page-password',
@@ -56,15 +58,11 @@
       $(pages.control).show();
       $(pages.password).hide();
 
-      // heating status is unknown
-      $(heating_status.on).hide();
-      $(heating_status.off).hide();
-      $(heating_status.unknown).show();
-      $(control_containers.turnoff).hide();
-      $(control_containers.turnon).hide();
+      // test read status
+      Control.read_status();
 
-      // perform initial query
-      Control.push_request( Control.Request.status );
+      // commence loop
+      Control.read_status_loop();
 
     });
 
@@ -78,7 +76,53 @@
       status : 'status'
     },
 
+    read_status_timeout : null,
+
+    read_status_loop : function() {
+      if (Control.read_status_timeout) {
+        clearTimeout(Control.read_status_timeout);
+      }
+      Control.read_status();
+      Control.read_status_timeout = setTimeout(Control.read_status_loop, 10000);
+    },
+
     read_status : function() {
+
+      $.get('https://dweet.io/get/dweets/for/'+cfg.thingid)
+        .done(function(data) {
+
+          var now = new Date();
+          var status = null;
+
+          // data is an object; most recent is on top, so we can break at first valid entry
+          $.each( data.with, function(key, item) {
+
+            if ( now - new Date(item.created) < cfg.commands_expire_s*1000 ) {
+              // consider only "recent" dweets (can be configured)
+              if (item.content.type == 'status') {
+                $.each(Request, function(key, value) {
+                  if (item.content.status == value) {
+                    status = key;
+                  }
+                });
+                console.log( 'status found: '+item.content.status );
+              }
+              else {
+                console.log('not a status dweet, ignoring... content follows');
+                console.log(item.content);
+              }
+            }
+            else {
+              console.log('dweet has expired, ignoring all subsequent dweets');
+              return false;  // break from $.each()
+            }
+
+          });
+
+        })
+        .fail(function() {
+          console.log('reading dweets failed')
+        })
     },
 
     push_request : function(req) {
@@ -90,7 +134,7 @@
 
       $.post(
         'https://dweet.io/dweet/for/'+cfg.thingid,
-        { command: req }
+        { type: 'command', command: req }
       )
         .done( function() {
           $.each( update_status, function(key, value) {
