@@ -65,6 +65,11 @@
       Control.read_status_loop();
 
     });
+    $(inputs.password).keypress(function(evt) {
+      if (evt.which == 13) {
+        $(controls.password).trigger('click');
+      }
+    });
 
   };
 
