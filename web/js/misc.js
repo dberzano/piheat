@@ -85,6 +85,9 @@
     });
     $(inputs.password).focus();
 
+    // TODO: actually check password (skip it for now)
+    $(controls.password).trigger('click');
+
   };
 
   var Display = {
