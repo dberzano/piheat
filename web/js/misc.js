@@ -44,6 +44,11 @@
 
   var encryption_password = '';
 
+  var current_status = {
+    status : null,
+    when : null
+  };
+
   var init = function() {
 
     $(pages.control).hide();
@@ -51,7 +56,7 @@
 
     $(texts.thingname).text( cfg.thingid );
 
-    display_heating_status('unknown');
+    Display.heating_status('unknown');
 
     $(controls.password).click(function() {
 
@@ -60,11 +65,9 @@
       $(pages.control).show();
       $(pages.password).hide();
 
-      // test read status
-      Control.read_status();
-
-      // commence loop
-      //Control.read_status_loop();
+      // commence loops
+      Control.read_status_loop();
+      Display.last_updated_loop();
 
     });
     $(inputs.password).keypress(function(evt) {
@@ -76,28 +79,63 @@
 
   };
 
-  var display_heating_status = function(status) {
+  var Display = {
 
-    $.each(heating_status, function(key, value) {
-      // hide all status labels
-      $(value).hide();
-    });
-    $.each(control_containers, function(key, value) {
-      // hide all turn on/off buttons
-      $(value).hide();
-    })
+    heating_status : function(status) {
 
-    if (status == 'on') {
-      $(heating_status.on).show();
-      $(control_containers.turnoff).show();
-    }
-    else if (status == 'off') {
-      $(heating_status.off).show();
-      $(control_containers.turnon).show();
-    }
-    else {
-      // invalid/unknown
-      $(heating_status.unknown).show();
+      $.each(heating_status, function(key, value) {
+        // hide all status labels
+        $(value).hide();
+      });
+      $.each(control_containers, function(key, value) {
+        // hide all turn on/off buttons
+        $(value).hide();
+      })
+
+      if (status == 'on') {
+        $(heating_status.on).show();
+        $(control_containers.turnoff).show();
+      }
+      else if (status == 'off') {
+        $(heating_status.off).show();
+        $(control_containers.turnon).show();
+      }
+      else {
+        // invalid/unknown
+        $(heating_status.unknown).show();
+      }
+
+    },
+
+    last_updated_loop : function() {
+      if (Display.last_updated_timeout) {
+        clearTimeout(Display.last_updated_timeout);
+      }
+      Display.last_updated(current_status.when);
+      Display.last_updated_timeout = setTimeout(Display.last_updated_loop, 5000);
+    },
+
+    last_updated : function(when) {
+      if (when) {
+        var diff = (new Date()-when) / 1000;  // seconds
+        var msg;
+        if (diff < 60) {
+          msg = 'updated ' + Math.round(diff) + ' s ago';
+        }
+        else {
+          diff /= 60;
+          if (diff < 60) {
+            msg = 'updated ' + Math.round(diff) + ' min ago';
+          }
+        }
+        if ( $(update_status.updated).text() != msg ) {
+          $(update_status.updated).text(msg);
+        }
+        $(update_status.updated).show();
+      }
+      else {
+        $(update_status.updated).hide();
+      }
     }
 
   };
@@ -126,17 +164,20 @@
         .done(function(data) {
 
           var now = new Date();
+          var item_date;
           var status = null;
 
           // data is an object; most recent is on top, so we can break at first valid entry
           $.each( data.with, function(key, item) {
 
-            if ( now - new Date(item.created) < cfg.commands_expire_s*1000 ) {
+            item_date = new Date(item.created);
+
+            if ( now - item_date < cfg.commands_expire_s*1000 ) {
               // consider only "recent" dweets (can be configured)
               if (item.content.type == 'status') {
                 // TODO: check if status is valid
                 status = item.content.status;
-                console.log( 'found status: ' + status );
+                console.log('found status: \"' + status + '\", updated on: ' + item_date);
                 return false;  // break from $.each()
               }
               else {
@@ -152,7 +193,10 @@
           });
 
           // what is our status?
-          display_heating_status(status);
+          current_status.status = status;
+          current_status.when = item_date;
+          Display.heating_status(status);
+          Display.last_updated_loop();
 
         })
         .fail(function() {
