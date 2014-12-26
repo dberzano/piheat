@@ -124,12 +124,12 @@
         var diff = (new Date()-when) / 1000;  // seconds
         var msg;
         if (diff < 60) {
-          msg = 'updated ' + Math.round(diff) + ' s ago';
+          msg = 'less than a minute ago';
         }
         else {
           diff /= 60;
           if (diff < 60) {
-            msg = 'updated ' + Math.round(diff) + ' min ago';
+            msg = Math.round(diff) + ' min ago';
           }
         }
         if ( $(update_status.updated).text() != msg ) {
