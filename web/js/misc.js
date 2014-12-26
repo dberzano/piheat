@@ -51,6 +51,8 @@
 
     $(texts.thingname).text( cfg.thingid );
 
+    display_heating_status('unknown');
+
     $(controls.password).click(function() {
 
       // password button pressed
@@ -62,7 +64,7 @@
       Control.read_status();
 
       // commence loop
-      Control.read_status_loop();
+      //Control.read_status_loop();
 
     });
     $(inputs.password).keypress(function(evt) {
@@ -70,6 +72,33 @@
         $(controls.password).trigger('click');
       }
     });
+    $(inputs.password).focus();
+
+  };
+
+  var display_heating_status = function(status) {
+
+    $.each(heating_status, function(key, value) {
+      // hide all status labels
+      $(value).hide();
+    });
+    $.each(control_containers, function(key, value) {
+      // hide all turn on/off buttons
+      $(value).hide();
+    })
+
+    if (status == 'on') {
+      $(heating_status.on).show();
+      $(control_containers.turnoff).show();
+    }
+    else if (status == 'off') {
+      $(heating_status.off).show();
+      $(control_containers.turnon).show();
+    }
+    else {
+      // invalid/unknown
+      $(heating_status.unknown).show();
+    }
 
   };
 
@@ -105,12 +134,10 @@
             if ( now - new Date(item.created) < cfg.commands_expire_s*1000 ) {
               // consider only "recent" dweets (can be configured)
               if (item.content.type == 'status') {
-                $.each(Request, function(key, value) {
-                  if (item.content.status == value) {
-                    status = key;
-                  }
-                });
-                console.log( 'status found: '+item.content.status );
+                // TODO: check if status is valid
+                status = item.content.status;
+                console.log( 'found status: ' + status );
+                return false;  // break from $.each()
               }
               else {
                 console.log('not a status dweet, ignoring... content follows');
@@ -123,6 +150,9 @@
             }
 
           });
+
+          // what is our status?
+          display_heating_status(status);
 
         })
         .fail(function() {
