@@ -65,6 +65,10 @@
       $(pages.control).show();
       $(pages.password).hide();
 
+      // reset errors
+      Display.request_error(false);
+      Display.update_error(false);
+
       // commence loops
       Control.read_status_loop();
       Display.last_updated_loop();
@@ -136,6 +140,24 @@
       else {
         $(update_status.updated).hide();
       }
+    },
+
+    request_error : function(iserr) {
+      if (iserr) {
+        $(request_status.error).show();
+      }
+      else {
+        $(request_status.error).hide();
+      }
+    },
+
+    update_error : function(iserr) {
+      if (iserr) {
+        $(update_status.error).show();
+      }
+      else {
+        $(update_status.error).hide();
+      }
     }
 
   };
@@ -195,11 +217,13 @@
           // what is our status?
           current_status.status = status;
           current_status.when = item_date;
+          Display.update_error(false);
           Display.heating_status(status);
           Display.last_updated_loop();
 
         })
         .fail(function() {
+          Display.update_error(true);
           console.log('reading dweets failed')
         })
     },
