@@ -125,7 +125,10 @@
       if (when) {
         var diff = (new Date()-when) / 1000;  // seconds
         var msg;
-        if (diff < 60) {
+        if (diff < 30) {
+          msg = 'just now';
+        }
+        else if (diff < 60) {
           msg = 'less than a minute ago';
         }
         else {
