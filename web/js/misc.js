@@ -216,7 +216,12 @@
 
           // what is our status?
           current_status.status = status;
-          current_status.when = item_date;
+          if (status) {
+            current_status.when = item_date;
+          }
+          else {
+            current_status.when = null;
+          }
           Display.update_error(false);
           Display.heating_status(status);
           Display.last_updated_loop();
