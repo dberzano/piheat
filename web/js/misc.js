@@ -56,7 +56,7 @@
 
     $(texts.thingname).text( cfg.thingid );
 
-    Display.heating_status('unknown');
+    Display.heating_status();
 
     $(controls.password).click(function() {
 
@@ -85,7 +85,9 @@
 
   var Display = {
 
-    heating_status : function(status) {
+    last_updated_timeout : null,
+
+    heating_status : function() {
 
       $.each(heating_status, function(key, value) {
         // hide all status labels
@@ -96,11 +98,11 @@
         $(value).hide();
       })
 
-      if (status == 'on') {
+      if (current_status.status == 'on') {
         $(heating_status.on).show();
         $(control_containers.turnoff).show();
       }
-      else if (status == 'off') {
+      else if (current_status.status == 'off') {
         $(heating_status.off).show();
         $(control_containers.turnon).show();
       }
@@ -223,7 +225,7 @@
             current_status.when = null;
           }
           Display.update_error(false);
-          Display.heating_status(status);
+          Display.heating_status();
           Display.last_updated_loop();
 
         })
