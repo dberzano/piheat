@@ -12,6 +12,10 @@
   color: #cdbfe3;
 }
 
+.piheat-bottomspace {
+  margin-bottom: 20px;
+}
+
 body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }

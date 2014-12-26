@@ -38,44 +38,50 @@
     <div class="master-container">
 
       <div class="container text-center" id="page-password">
-        <p class="lead">Type password to proceed</p>
-        <div class="row">
+
+        <p class="piheat-bottomspace lead">Type password to proceed</p>
+
+        <div class="row piheat-bottomspace">
           <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3">
             <input type="password" id="input-password" class="form-control">
           </div>
         </div>
-        <br/>
+
         <div class="btn-group btn-group-lg" role="group">
           <button id="control-password" type="button" class="btn btn-info">OK</button>
         </div>
+
       </div>
 
       <div class="container text-center" id="page-control">
 
-        <p class="lead">Heating is
+        <p class="piheat-bottomspace lead">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
           <span id="heating-status-unknown" class="text-warning">unknown</span>
+        </p>
 
+        <div class="piheat-bottomspace">
+
+          <!-- turn on button -->
+          <div id="control-container-turnon" class="btn-group btn-group-lg" role="group">
+            <button type="button" id="control-turnon" class="btn btn-success">Turn on</button>
+          </div>
+          <!-- turn off button -->
+          <div id="control-container-turnoff" class="btn-group btn-group-lg" role="group">
+            <button type="button" id="control-turnoff" class="btn btn-danger">Turn off</button>
+          </div>
+
+        </div>
+
+        <p>
           <!-- request status -->
           <span id="request-status-error" class="label label-danger">request error</span>
-
           <!-- update status -->
           <span id="update-status-error" class="label label-danger">update error</span>
           <span id="update-status-updated" class="label label-info">updated X minutes ago</span>
-
         </p>
-
-        <!-- turn on button -->
-        <div id="control-container-turnon" class="btn-group btn-group-lg" role="group">
-          <button type="button" id="control-turnon" class="btn btn-success">Turn on</button>
-        </div>
-
-        <!-- turn off button -->
-        <div id="control-container-turnoff" class="btn-group btn-group-lg" role="group">
-          <button type="button" id="control-turnoff" class="btn btn-danger">Turn off</button>
-        </div>
 
       </div>
 
