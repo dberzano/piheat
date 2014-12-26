@@ -58,6 +58,10 @@
 
     Display.heating_status();
 
+    // turn on/off buttons
+    $(controls.turnon).click( Control.turn_on );
+    $(controls.turnoff).click( Control.turn_off );
+
     $(controls.password).click(function() {
 
       // password button pressed
@@ -234,32 +238,45 @@
         })
         .fail(function() {
           Display.update_error(true);
-          console.log('reading dweets failed')
+          console.log('reading dweets failed');
         })
     },
 
-    push_request : function(req) {
+    turn_on : function() {
+      Control.push_request('turnon', controls.turnon);
+    },
 
-      $.each( update_status, function(key, value) {
-        if (key == 'sent') $(value).show();
-        else $(value).hide();
-      });
+    turn_off : function() {
+      Control.push_request('turnoff', controls.turnoff);
+    },
+
+    request_status : function() {
+      Control.push_request('status');
+    },
+
+    push_request : function(req, lock_obj_selector) {
+
+      console.log('requesting command ' + req);
+
+      if (lock_obj_selector) {
+        $(lock_obj_selector).prop('disabled', true);
+      }
 
       $.post(
         'https://dweet.io/dweet/for/'+cfg.thingid,
         { type: 'command', command: req }
       )
-        .done( function() {
-          $.each( update_status, function(key, value) {
-            if (key == 'updating') $(value).show();
-            else $(value).hide();
-          });
+        .fail(function() {
+          Display.request_error(true);
+          console.log('posting command failed');
         })
-        .fail( function() {
-          $.each( update_status, function(key, value) {
-            if (key == 'failure') $(value).show();
-            else $(value).hide();
-          });
+        .done(function () {
+          Display.request_error(false);
+        })
+        .always(function () {
+          if (lock_obj_selector) {
+            $(lock_obj_selector).prop('disabled', false);
+          }
         });
 
     }
