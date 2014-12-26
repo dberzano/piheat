@@ -15,7 +15,8 @@
   };
 
   var request_status = {
-    'error': '#request-status-error'
+    'error': '#request-status-error',
+    'sent': '#request-status-sent'
   }
 
   var pages = {
@@ -46,7 +47,9 @@
 
   var current_status = {
     status : null,
-    when : null
+    when : null,
+    new_status : null,
+    new_status_when : null
   };
 
   var init = function() {
@@ -76,6 +79,7 @@
       // commence loops
       Control.read_status_loop();
       Display.last_updated_loop();
+      Display.request_received_loop();
 
     });
     $(inputs.password).keypress(function(evt) {
@@ -154,6 +158,31 @@
       }
     },
 
+    request_received_loop : function() {
+      if (Display.request_received_timeout) {
+        clearTimeout(Display.request_received_timeout);
+      }
+      Display.request_received();
+      Display.request_received_timeout = setTimeout(Display.request_received_loop, 5000);
+    },
+
+    request_received : function() {
+
+      if (current_status.new_status && current_status.new_status != current_status.status) {
+        // command not yet accepted
+        $(request_status.sent).show();
+        var disable_turnon = (current_status.new_status == 'on');
+        $(controls.turnon).prop('disabled', disable_turnon);
+        $(controls.turnoff).prop('disabled', !disable_turnon);
+      }
+      else {
+        $(request_status.sent).hide();
+        $(controls.turnon).prop('disabled', false);
+        $(controls.turnoff).prop('disabled', false);
+      }
+
+    },
+
     request_error : function(iserr) {
       if (iserr) {
         $(request_status.error).show();
@@ -200,6 +229,9 @@
           var now = new Date();
           var item_date;
           var status = null;
+          var new_status = null;
+          var status_date = null;
+          var new_status_date = null;
 
           // data is an object; most recent is on top, so we can break at first valid entry
           $.each( data.with, function(key, item) {
@@ -208,15 +240,21 @@
 
             if ( now - item_date < cfg.commands_expire_s*1000 ) {
               // consider only "recent" dweets (can be configured)
-              if (item.content.type == 'status') {
+              if (!status && item.content.type == 'status') {
                 // TODO: check if status is valid
                 status = item.content.status;
-                console.log('found status: \"' + status + '\", updated on: ' + item_date);
-                return false;  // break from $.each()
+                status_date = item_date;
               }
-              else {
-                console.log('not a status dweet, ignoring... content follows');
-                console.log(item.content);
+              else if (!new_status && item.content.type == 'command') {
+                command = item.content.command;
+                if (command == 'turnon') {
+                  new_status = 'on';
+                  new_status_date = item_date;
+                }
+                else if (command == 'turnoff') {
+                  new_status = 'off';
+                  new_status_date = item_date;
+                }
               }
             }
             else {
@@ -226,17 +264,29 @@
 
           });
 
-          // what is our status?
+          // what is our status and last command?
           current_status.status = status;
+          current_status.new_status = new_status;
           if (status) {
-            current_status.when = item_date;
+            console.log('[status] ' + status + ' on ' + status_date);
+            current_status.when = status_date;
           }
           else {
+            console.log('[status] <unknown>');
             current_status.when = null;
+          }
+          if (new_status) {
+            console.log('[new_status] ' + new_status + ' on ' + new_status_date);
+            current_status.new_status_when = new_status_date;
+          }
+          else {
+            console.log('[new_status] <unknown>');
+            current_status.new_status_when = null;
           }
           Display.update_error(false);
           Display.heating_status();
           Display.last_updated_loop();
+          Display.request_received_loop();
 
         })
         .fail(function() {
@@ -246,10 +296,12 @@
     },
 
     turn_on : function() {
-      Control.push_request('turnon', controls.turnon);
+      $(controls.turnon).prop('disabled', true);
+      Control.push_request('turnon');
     },
 
     turn_off : function() {
+      $(controls.turnoff).prop('disabled', true);
       Control.push_request('turnoff', controls.turnoff);
     },
 
@@ -257,13 +309,9 @@
       Control.push_request('status');
     },
 
-    push_request : function(req, lock_obj_selector) {
+    push_request : function(req) {
 
       console.log('requesting command ' + req);
-
-      if (lock_obj_selector) {
-        $(lock_obj_selector).prop('disabled', true);
-      }
 
       $.post(
         'https://dweet.io/dweet/for/'+cfg.thingid,
@@ -275,11 +323,15 @@
         })
         .done(function () {
           Display.request_error(false);
-        })
-        .always(function () {
-          if (lock_obj_selector) {
-            $(lock_obj_selector).prop('disabled', false);
+          if (req == 'turnon') {
+            current_status.new_status_when = new Date();
+            current_status.new_status = 'on';
           }
+          else if (req == 'turnoff') {
+            current_status.new_status_when = new Date();
+            current_status.new_status = 'off';
+          }
+          Display.request_received_loop();
         });
 
     }
