@@ -1,11 +1,16 @@
 ## @package piheat
 #  Remote heating control for Raspberry Pi: server application
 
+## This application's version
+__version__ = '0.0.1'
 
-## Entry point.
-#
-#  @param argv Command-line arguments (this executable's name is not expected)
-def main(argv):
-  for a in argv:
-    print a
-  return 0
+import time
+from daemon import Daemon
+
+## @class PiHeat
+#  The PiHeat application, daemonized.
+class PiHeat(Daemon):
+
+  def run(self):
+    print 'this daemon runs for 60 seconds'
+    time.sleep(60)

@@ -1,3 +1,40 @@
 #!/usr/bin/env python
-import piheat, sys
-sys.exit(piheat.main(sys.argv[1:]))
+
+## @package piheat
+#  Loader for the PiHeat daemon. Prepares working directories and the environment, then launches
+#  the main loop.
+
+import sys, os.path
+from piheat import PiHeat
+
+pidfile = os.path.expanduser('~/.piheat/piheat.pid')
+if pidfile.startswith('/var/lib/piheat'):
+  pidfile = '/var/lib/piheat/piheat.pid'
+
+dir_pidfile = os.path.dirname(pidfile)
+if os.path.isdir(dir_pidfile):
+  try:
+    os.chmod(dir_pidfile, 0700)
+  except OSError:
+    pass
+else:
+  os.mkdir(dir_pidfile, 0700)
+
+with open(pidfile, 'a') as f:
+  pass
+os.chmod(pidfile, 0600)
+
+try:
+  cmd = sys.argv[1].lower()
+except IndexError:
+  cmd = None
+
+pih = PiHeat(pidfile)
+if cmd == 'start':
+  pih.start()
+elif cmd == 'stop':
+  pih.stop()
+elif cmd == 'restart':
+  pih.restart()
+else:
+  print 'Usage: %s [start|stop|restart]' % os.path.basename(sys.argv[0])
