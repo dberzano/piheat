@@ -36,5 +36,7 @@ if cmd == 'start':
 elif cmd == 'stop':
   sys.stderr.write('Stopping PiHeat...\n')
   pih.stop()
+elif cmd == 'nodaemon':
+  pih.run()
 else:
-  sys.stderr.write( 'Usage: %s [start|stop]\n' % os.path.basename(sys.argv[0]) )
+  sys.stderr.write( 'Usage: %s [start|stop|nodaemon]\n' % os.path.basename(sys.argv[0]) )
