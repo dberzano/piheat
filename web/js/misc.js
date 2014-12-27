@@ -246,7 +246,7 @@
 
     read_status : function() {
 
-      $.get('https://dweet.io/get/dweets/for/'+cfg.thingid)
+      $.get('https://dweet.io/get/dweets/for/' + cfg.thingid)
         .done(function(data) {
 
           var now = new Date();
@@ -264,12 +264,18 @@
             if ( now - item_date < cfg.commands_expire_s*1000 ) {
               // consider only "recent" dweets (can be configured)
               if (!status && item.content.type == 'status') {
-                // TODO: check if status is valid
-                status = item.content.status;
-                status_date = item_date;
+                status = item.content.status.toLowerCase();
+                if (status == 'on' || status == 'off') {
+                  status_date = item_date;
+                }
+                else {
+                  // status message is not valid: skip
+                  Logger.log('Control.read_status', 'invalid status ignored: \"' + status + '\"');
+                  status = null;
+                }
               }
               else if (!new_status && item.content.type == 'command') {
-                command = item.content.command;
+                command = item.content.command.toLowerCase();
                 if (command == 'turnon') {
                   new_status = 'on';
                   new_status_date = item_date;
@@ -277,6 +283,10 @@
                 else if (command == 'turnoff') {
                   new_status = 'off';
                   new_status_date = item_date;
+                }
+                else {
+                  // command is not valid: skip
+                  Logger.log('Control.read_status', 'invalid command ignored: \"' + command + '\"');
                 }
               }
             }
@@ -337,7 +347,7 @@
       Logger.log('Control.push_request', 'requesting command: \"' + req + '\"');
 
       $.post(
-        'https://dweet.io/dweet/for/'+cfg.thingid,
+        'https://dweet.io/dweet/for/' + cfg.thingid,
         { type: 'command', command: req }
       )
         .fail(function() {
