@@ -127,6 +127,16 @@ class Daemon:
     self.daemonize()
     self.run()
 
+  ## Returns the status of the daemon. If daemon is running, its PID is printed.
+  def status(self):
+    self.read_pid()
+    if self.is_running():
+      sys.stderr.write('Daemon running with PID %d\n' % self.pid)
+      sys.exit(0)
+    else:
+      sys.stderr.write('Daemon not running\n')
+      sys.exit(1)
+
   ## Stop the daemon.
   #
   #  An attempt to kill the daemon is performed for 30 seconds sending **signal 15 (SIGTERM)**: if

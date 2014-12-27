@@ -38,6 +38,8 @@ if cmd == 'start':
 elif cmd == 'stop':
   sys.stderr.write('Stopping PiHeat...\n')
   pih.stop()
+elif cmd == 'status':
+  pih.status()
 elif cmd == 'nodaemon':
   pih.run()
 else:
