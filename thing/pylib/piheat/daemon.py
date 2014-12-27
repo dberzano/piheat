@@ -9,7 +9,7 @@
 import sys, os, time, atexit, signal
 
 ## @class Daemon
-#  Abstract pytonic daemon class.
+#  Abstract pythonic daemon class.
 #
 #  **Usage:** subclass it and override the `run()` method. Use `start()` to start it in background,
 #  `stop()` to terminate it. Class must be initialized by providing a pidfile path.
@@ -39,12 +39,12 @@ class Daemon:
     self.pid = None
 
   ## Write PID to pidfile.
-  def write_pid(self):
+  def _write_pid(self):
     with open(self._pidfile, 'w') as pf:
       pf.write( str(self.pid) + '\n' )
 
   ## Read PID from pidfile.
-  def read_pid(self):
+  def _read_pid(self):
     try:
       with open(self._pidfile, 'r') as pf:
         self.pid = int( pf.read().strip() )
@@ -55,7 +55,7 @@ class Daemon:
   #8/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon).
   #
   #  @return False on failure, True on success
-  def daemonize(self):
+  def _daemonize(self):
 
     try:
       pid = os.fork()
@@ -96,18 +96,18 @@ class Daemon:
     os.dup2(se.fileno(), sys.stderr.fileno())
 
     # write pidfile and schedule deletion
-    atexit.register(self.del_pid)
-    self.write_pid()
+    atexit.register(self._del_pid)
+    self._write_pid()
 
   ## Delete pidfile.
-  def del_pid(self):
+  def _del_pid(self):
     if os.path.isfile(self._pidfile):
       os.remove(self._pidfile)
 
   ## Determines if a daemon with the current PID is running by sending a dummy signal.
   #
   #  @return True if running, False if not
-  def is_running(self):
+  def _is_running(self):
     if self.pid is None:
       return False
     try:
@@ -120,20 +120,20 @@ class Daemon:
   def start(self):
 
     # Check for a pidfile to see if the daemon already runs
-    self.read_pid()
+    self._read_pid()
 
-    if self.is_running():
+    if self._is_running():
       sys.stderr.write( 'Daemon already running with PID %d\n' % self.pid );
       sys.exit(0)
 
     # Start the daemon
-    self.daemonize()
+    self._daemonize()
     self.run()
 
   ## Returns the status of the daemon. If daemon is running, its PID is printed.
   def status(self):
-    self.read_pid()
-    if self.is_running():
+    self._read_pid()
+    if self._is_running():
       sys.stderr.write('Daemon running with PID %d\n' % self.pid)
       sys.exit(0)
     else:
@@ -153,9 +153,9 @@ class Daemon:
   def stop(self):
 
     # Get the pid from the pidfile
-    self.read_pid()
+    self._read_pid()
 
-    if not self.is_running():
+    if not self._is_running():
       sys.stderr.write('Daemon not running\n')
       sys.exit(0)
 
@@ -177,7 +177,7 @@ class Daemon:
       sys.stderr.write('Daemon exited gracefully\n')
       sys.exit(0)
 
-    if self.is_running():
+    if self._is_running():
       sys.stderr.write('Could not terminate daemon!\n')
       sys.exit(1)
     else:
