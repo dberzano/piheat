@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+import piheat, sys
+sys.exit(piheat.main(sys.argv[1:]))
