@@ -78,15 +78,27 @@ class Daemon:
     if os.path.isfile(self._pidfile):
       os.remove(self._pidfile)
 
+  ## Are we running?
+  #
+  #  @return True or False
+  def is_running(self):
+    if self.pid is None:
+      return False
+    try:
+      os.kill(self.pid, 0)
+    except OSError:
+      return False
+    return True
+
   ## Start the daemon.
   def start(self):
 
     # Check for a pidfile to see if the daemon already runs
     self.read_pid()
 
-    if self.pid:
-      sys.stderr.write( 'PID file %s already exists: daemon already running?\n' % self._pidfile )
-      sys.exit(1)
+    if self.is_running():
+      sys.stderr.write( 'Daemon already running with PID %d\n' % self.pid );
+      sys.exit(0)
 
     # Start the daemon
     self.daemonize()
@@ -98,9 +110,9 @@ class Daemon:
     # Get the pid from the pidfile
     self.read_pid()
 
-    if not self.pid:
-      sys.stderr.write( 'PID file %s does not exist: daemon not running?\n' % self._pidfile )
-      return # not an error in a restart
+    if not self.is_running():
+      sys.stderr.write( 'Daemon not running\n' )
+      sys.exit(0)
 
     # Try killing the daemon process
     try:
