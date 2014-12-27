@@ -45,3 +45,30 @@ Command is a case-insensitive string. Possible commands:
 * **turnon**: requests to turn heating on
 * **turnoff**: requests to turn heating off
 * **status**: requests device to report status
+
+
+Client configuration
+--------------------
+
+Web client does not require a web server: everything runs in the browser. On the
+server, though, a configuration file must be provided.
+
+It must be placed in `js/private-config.js` and it contains a JSON-formatted
+configuration like the following:
+
+```json
+piheat_config = {
+  "thingid": "<thingid>",
+  "messages_expire_after_s": 12345,
+};
+```
+
+All the configuration variables are **mandatory**: the client will stop and
+issue a warning if they are not configured.
+
+* **thingid**: the "thing" identifier as on [dweet.io](http://dweet.io). As all
+  dweets are public, and there is no registration needed, everybody can "dweet"
+  in place of your thing, so set a difficult-to-guess name, like a UUID. It must
+  be the same on the client and on the server.
+* **messages_expire_after_s**: all dweets older than the specified number of
+  seconds will be considered expired, and therefore ignored.

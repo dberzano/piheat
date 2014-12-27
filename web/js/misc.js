@@ -22,7 +22,8 @@
 
   var pages = {
     'password': '#page-password',
-    'control': '#page-control'
+    'control': '#page-control',
+    'errors': '#page-errors'
   };
 
   var controls = {
@@ -41,7 +42,9 @@
   }
 
   var texts = {
-    'thingname': '#text-thingname'
+    'thingname': '#text-thingname',
+    'errors': '#text-errors',
+    'errors_title': '#text-errors-title'
   }
 
   /// Current status and expected commands
@@ -53,10 +56,36 @@
     password : null
   };
 
+  var check_config = function() {
+    if (cfg === null) {
+      return 'JSON configuration variable <b>piheat_config</b> not found';
+    }
+    else if (!cfg.thingid) {
+      return '<b>thingid</b> is mandatory';
+    }
+    else if (isNaN(parseInt(cfg.messages_expire_after_s)) ||
+      parseInt(cfg.messages_expire_after_s) < 5) {
+      return '<b>messages_expire_after_s</b> must be set to no less than 5 seconds';
+    }
+    return null;
+  };
+
   var init = function() {
+
+    var check_config_result = check_config();
+    if (check_config_result != null) {
+      // found errors in configuration
+      $(texts.errors_title).text('Configuration error');
+      $(texts.errors).html( check_config_result );
+      $(pages.control).hide();
+      $(pages.password).hide();
+      $(pages.errors).show();
+      return;
+    }
 
     $(pages.control).hide();
     $(pages.password).show();
+    $(pages.errors).hide();
 
     $(texts.thingname).text( cfg.thingid );
 
@@ -261,7 +290,7 @@
 
             item_date = new Date(item.created);
 
-            if ( now - item_date < cfg.commands_expire_s*1000 ) {
+            if ( now - item_date < cfg.messages_expire_after_s*1000 ) {
               // consider only "recent" dweets (can be configured)
               if (!status && item.content.type == 'status') {
                 status = item.content.status.toLowerCase();
@@ -374,4 +403,4 @@
   // entry point
   $(document).ready( init );
 
-})(jQuery, piheat_config);
+})(jQuery, (typeof piheat_config !== 'undefined') ? piheat_config : null);
