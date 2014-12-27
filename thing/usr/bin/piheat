@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-## @package piheat
-#  Loader for the PiHeat daemon. Prepares working directories and the environment, then launches
-#  the main loop.
+## @file piheat.py
+#  Main executable for the Pi Heat daemon.
+#
+#  Prepares working directories and the environment, then invokes methods from the PiHeat class.
+#  This script can be used in a way that resembles the `/etc/init.d` scripts.
 
 import sys, os.path
 from piheat import PiHeat
