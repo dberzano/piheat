@@ -1,24 +1,46 @@
-## @package piheat
-#  Generic linux daemon base class. Works with Python 3 too.
-#  Inspired by http://www.jejik.com/files/examples/daemon3x.py but heavily modified.
+## @file daemon.py
+#  Create a generic pythonic daemon.
+#
+#  Should work with Python 3 too.
+#
+#  Originally inspired by [this code](http://www.jejik.com/files/examples/daemon3x.py) but then
+#  heavily improved.
 
 import sys, os, time, atexit, signal
 
-## A generic daemon class.
+## @class Daemon
+#  Abstract pytonic daemon class.
 #
-#  Usage: subclass the daemon class and override the `run()` method.
+#  **Usage:** subclass it and override the `run()` method. Use `start()` to start it in background,
+#  `stop()` to terminate it. Class must be initialized by providing a pidfile path.
+#
+#  Example code:
+#
+#  ~~~{.py}
+#  class MyClass(Daemon):
+#    def run(self):
+#      # do things here
+#
+#  prog = MyClass('/tmp/myclass.pid')
+#  prog.start()
+#  ~~~
 class Daemon:
 
+  ## Constructor.
+  #
+  #  @param pidfile Full path to PID file. Path must exist.
   def __init__(self, pidfile):
+    ## Path to the file where to write the current PID
     self._pidfile = pidfile
+    ## PID of daemon
     self.pid = None
 
-  ## Write pidfile.
+  ## Write PID to pidfile.
   def write_pid(self):
     with open(self._pidfile, 'w') as pf:
       pf.write( str(self.pid) + '\n' )
 
-  ## Read pidfile.
+  ## Read PID from pidfile.
   def read_pid(self):
     try:
       with open(self._pidfile, 'r') as pf:
@@ -26,7 +48,8 @@ class Daemon:
     except (IOError, ValueError):
       self.pid = None
 
-  ## Daemonize class. Unix double-fork mechanism.
+  ## Daemonize class. Uses the [Unix double-fork technique](http://stackoverflow.com/questions/88138
+  #8/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon).
   #
   #  @return False on failure, True on success
   def daemonize(self):
@@ -78,9 +101,9 @@ class Daemon:
     if os.path.isfile(self._pidfile):
       os.remove(self._pidfile)
 
-  ## Are we running?
+  ## Determines if a daemon with the current PID is running by sending a dummy signal.
   #
-  #  @return True or False
+  #  @return True if running, False if not
   def is_running(self):
     if self.pid is None:
       return False
@@ -90,7 +113,7 @@ class Daemon:
       return False
     return True
 
-  ## Start the daemon.
+  ## Start the daemon. Daemon is sent to background then started.
   def start(self):
 
     # Check for a pidfile to see if the daemon already runs
@@ -105,6 +128,15 @@ class Daemon:
     self.run()
 
   ## Stop the daemon.
+  #
+  #  An attempt to kill the daemon is performed for 30 seconds sending **signal 15 (SIGTERM)**: if
+  #  the daemon is implemented properly, it will perform its shutdown operations and it will exit
+  #  gracefully.
+  #
+  #  If the daemon is still running after this termination attempt, **signal 9 (KILL)** is sent, and
+  #  daemon is abruptly terminated.
+  #
+  #  Note that this attempt might fail as well.
   def stop(self):
 
     # Get the pid from the pidfile
@@ -140,8 +172,8 @@ class Daemon:
 
     sys.exit(0)
 
-  ## You should override this method when you subclass Daemon.
+  ## Dummy method to be overridden by subclasses.
   #
-  # It will be called after the process has been daemonized by `start()` or `restart()`.
+  #  It will be called after the process has been daemonized by `start()`.
   def run(self):
     pass
