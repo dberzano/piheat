@@ -1,5 +1,6 @@
-/* misc.js -- by Dario Berzano <dario.berzano@gmail.com>
- */
+/// @file misc.js
+/// @author Dario Berzano <dario.berzano@gmail.com>
+/// Remote heating control for Raspberry Pi: client scripts
 
 (function($, cfg) {
 
@@ -43,13 +44,13 @@
     'thingname': '#text-thingname'
   }
 
-  var encryption_password = '';
-
-  var current_status = {
+  /// Current status and expected commands
+  var CurrentStatus = {
     status : null,
     when : null,
     new_status : null,
-    new_status_when : null
+    new_status_when : null,
+    password : null
   };
 
   var init = function() {
@@ -61,14 +62,14 @@
 
     Display.heating_status();
 
-    // turn on/off buttons
+    // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
 
     $(controls.password).click(function() {
 
       // password button pressed
-      encryption_password = $(inputs.password).val();
+      CurrentStatus.password = $(inputs.password).val();
       $(pages.control).show();
       $(pages.password).hide();
 
@@ -83,6 +84,7 @@
 
     });
     $(inputs.password).keypress(function(evt) {
+      // press Enter on password field to submit
       if (evt.which == 13) {
         $(controls.password).trigger('click');
       }
@@ -93,6 +95,33 @@
     $(controls.password).trigger('click');
 
   };
+
+  var Logger = {
+
+    pad : function(num, digits) {
+      var s = num.toString();
+      digits -= s.length;
+      for (i=0; i<digits; i++) {
+        s = '0' + s;
+      }
+      return s;
+    },
+
+    log : function(func, message) {
+      var now = new Date();
+      console.log(
+        now.getFullYear().toString() +
+        Logger.pad(now.getMonth()+1, 2) +
+        Logger.pad(now.getDate(), 2) +
+        '-' +
+        Logger.pad(now.getHours(), 2) +
+        Logger.pad(now.getMinutes(), 2) +
+        Logger.pad(now.getSeconds(), 2) +
+        ' [' + func + '] ' + message
+      );
+    }
+
+  }
 
   var Display = {
 
@@ -109,11 +138,11 @@
         $(value).hide();
       })
 
-      if (current_status.status == 'on') {
+      if (CurrentStatus.status == 'on') {
         $(heating_status.on).show();
         $(control_containers.turnoff).show();
       }
-      else if (current_status.status == 'off') {
+      else if (CurrentStatus.status == 'off') {
         $(heating_status.off).show();
         $(control_containers.turnon).show();
       }
@@ -128,7 +157,7 @@
       if (Display.last_updated_timeout) {
         clearTimeout(Display.last_updated_timeout);
       }
-      Display.last_updated(current_status.when);
+      Display.last_updated(CurrentStatus.when);
       Display.last_updated_timeout = setTimeout(Display.last_updated_loop, 5000);
     },
 
@@ -168,10 +197,10 @@
 
     request_received : function() {
 
-      if (current_status.new_status && current_status.new_status != current_status.status) {
+      if (CurrentStatus.new_status && CurrentStatus.new_status != CurrentStatus.status) {
         // command not yet accepted
         $(request_status.sent).show();
-        var disable_turnon = (current_status.new_status == 'on');
+        var disable_turnon = (CurrentStatus.new_status == 'on');
         $(controls.turnon).prop('disabled', disable_turnon);
         $(controls.turnoff).prop('disabled', !disable_turnon);
       }
@@ -204,12 +233,6 @@
   };
 
   var Control = {
-
-    Request : {
-      on : 'on',
-      off : 'off',
-      status : 'status'
-    },
 
     read_status_timeout : null,
 
@@ -258,30 +281,30 @@
               }
             }
             else {
-              console.log('dweet has expired, ignoring all subsequent dweets');
+              Logger.log('Control.read_status', 'message expired: ignoring the rest');
               return false;  // break from $.each()
             }
 
           });
 
           // what is our status and last command?
-          current_status.status = status;
-          current_status.new_status = new_status;
+          CurrentStatus.status = status;
+          CurrentStatus.new_status = new_status;
           if (status) {
-            console.log('[status] ' + status + ' on ' + status_date);
-            current_status.when = status_date;
+            Logger.log('Control.read_status', 'status: ' + status + ' on ' + status_date);
+            CurrentStatus.when = status_date;
           }
           else {
-            console.log('[status] <unknown>');
-            current_status.when = null;
+            Logger.log('Control.read_status', 'status: <unknown>');
+            CurrentStatus.when = null;
           }
           if (new_status) {
-            console.log('[new_status] ' + new_status + ' on ' + new_status_date);
-            current_status.new_status_when = new_status_date;
+            Logger.log('Control.read_status', 'new_status: ' + new_status + ' on ' + new_status_date);
+            CurrentStatus.new_status_when = new_status_date;
           }
           else {
-            console.log('[new_status] <unknown>');
-            current_status.new_status_when = null;
+            Logger.log('Control.read_status', 'new_status: <unknown>');
+            CurrentStatus.new_status_when = null;
           }
           Display.update_error(false);
           Display.heating_status();
@@ -291,7 +314,7 @@
         })
         .fail(function() {
           Display.update_error(true);
-          console.log('reading dweets failed');
+          Logger.log('Control.read_status', 'failed reading dweets');
         })
     },
 
@@ -311,7 +334,7 @@
 
     push_request : function(req) {
 
-      console.log('requesting command ' + req);
+      Logger.log('Control.push_request', 'requesting command: \"' + req + '\"');
 
       $.post(
         'https://dweet.io/dweet/for/'+cfg.thingid,
@@ -319,17 +342,17 @@
       )
         .fail(function() {
           Display.request_error(true);
-          console.log('posting command failed');
+          Logger.log('Control.push_request', 'requesting command failed');
         })
         .done(function () {
           Display.request_error(false);
           if (req == 'turnon') {
-            current_status.new_status_when = new Date();
-            current_status.new_status = 'on';
+            CurrentStatus.new_status_when = new Date();
+            CurrentStatus.new_status = 'on';
           }
           else if (req == 'turnoff') {
-            current_status.new_status_when = new Date();
-            current_status.new_status = 'off';
+            CurrentStatus.new_status_when = new Date();
+            CurrentStatus.new_status = 'off';
           }
           Display.request_received_loop();
         });
