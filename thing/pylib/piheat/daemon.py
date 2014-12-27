@@ -1,6 +1,6 @@
 ## @package piheat
-#  Generic linux daemon base class for Python 3.x.
-#  Source: http://www.jejik.com/files/examples/daemon3x.py
+#  Generic linux daemon base class. Works with Python 3 too.
+#  Inspired by http://www.jejik.com/files/examples/daemon3x.py but heavily modified.
 
 import sys, os, time, atexit, signal
 
@@ -111,21 +111,34 @@ class Daemon:
     self.read_pid()
 
     if not self.is_running():
-      sys.stderr.write( 'Daemon not running\n' )
+      sys.stderr.write('Daemon not running\n')
       sys.exit(0)
 
-    # Try killing the daemon process
+    # Try killing the daemon process gracefully
+    kill_count = 0
+    kill_count_threshold = 30
     try:
-      while True:
+
+      while kill_count < kill_count_threshold:
         os.kill(self.pid, signal.SIGTERM)
-        time.sleep(0.1)
-    except OSError as err:
-      e = str(err.args)
-      if e.find("No such process") > 0:
-        self.del_pid()
-      else:
-        print (str(err.args))
-        sys.exit(1)
+        time.sleep(1)
+        kill_count = kill_count + 1
+
+      # force-kill
+      os.kill(self.pid, signal.SIGKILL)
+      time.sleep(2)
+
+    except OSError:
+      sys.stderr.write('Daemon exited gracefully\n')
+      sys.exit(0)
+
+    if self.is_running():
+      sys.stderr.write('Could not terminate daemon!\n')
+      sys.exit(1)
+    else:
+      sys.stderr.write('Daemon force-killed\n')
+
+    sys.exit(0)
 
   ## You should override this method when you subclass Daemon.
   #
