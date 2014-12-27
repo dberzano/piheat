@@ -7,6 +7,7 @@
 #  heavily improved.
 
 import sys, os, time, atexit, signal
+import logging, logging.handlers
 
 ## @class Daemon
 #  Abstract pythonic daemon class.
@@ -38,6 +39,12 @@ class Daemon:
     ## PID of daemon
     self.pid = None
 
+    self.logctl = logging.getLogger('daemonctl')
+    logctl_handler = logging.StreamHandler(stream=sys.stderr)
+    logctl_handler.setFormatter( logging.Formatter(name+': %(levelname)s: %(message)s') )
+    self.logctl.addHandler(logctl_handler)
+    self.logctl.setLevel(logging.DEBUG)
+
   ## Write PID to pidfile.
   def _write_pid(self):
     with open(self._pidfile, 'w') as pf:
@@ -63,7 +70,7 @@ class Daemon:
         # exit from first parent
         sys.exit(0)
     except OSError as e:
-      sys.stderr.write('Fork #1 failed: %s\n' % e)
+      self.logctl.critical('fork #1 failed: %s\n' % e)
       sys.exit(1)
 
     # decouple from parent environment
@@ -78,7 +85,7 @@ class Daemon:
         # exit from second parent
         sys.exit(0)
     except OSError as e:
-      sys.stderr.write('Fork #2 failed: %s\n' % e)
+      self.logctl.critical('fork #2 failed: %s\n' % e)
       sys.exit(1)
 
     # we are in the daemon: know our pid
@@ -123,7 +130,7 @@ class Daemon:
     self._read_pid()
 
     if self._is_running():
-      sys.stderr.write( 'Daemon already running with PID %d\n' % self.pid );
+      self.logctl.info('already running with PID %d' % self.pid);
       sys.exit(0)
 
     # Start the daemon
@@ -134,10 +141,10 @@ class Daemon:
   def status(self):
     self._read_pid()
     if self._is_running():
-      sys.stderr.write('Daemon running with PID %d\n' % self.pid)
+      self.logctl.info('running with PID %d' % self.pid)
       sys.exit(0)
     else:
-      sys.stderr.write('Daemon not running\n')
+      self.logctl.info('not running')
       sys.exit(1)
 
   ## Stop the daemon.
@@ -156,7 +163,7 @@ class Daemon:
     self._read_pid()
 
     if not self._is_running():
-      sys.stderr.write('Daemon not running\n')
+      self.logctl.info('not running')
       sys.exit(0)
 
     # Try killing the daemon process gracefully
@@ -174,14 +181,14 @@ class Daemon:
       time.sleep(2)
 
     except OSError:
-      sys.stderr.write('Daemon exited gracefully\n')
+      self.logctl.info('exited gracefully')
       sys.exit(0)
 
     if self._is_running():
-      sys.stderr.write('Could not terminate daemon!\n')
+      self.logctl.error('could not terminate')
       sys.exit(1)
     else:
-      sys.stderr.write('Daemon force-killed\n')
+      self.logctl.warning('force-killed')
 
     sys.exit(0)
 
