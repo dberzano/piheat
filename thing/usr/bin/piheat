@@ -31,7 +31,7 @@ try:
 except IndexError:
   cmd = None
 
-pih = PiHeat(pidfile)
+pih = PiHeat('piheat', pidfile)
 if cmd == 'start':
   sys.stderr.write('Starting PiHeat...\n')
   pih.start()

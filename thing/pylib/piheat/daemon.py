@@ -28,10 +28,13 @@ class Daemon:
 
   ## Constructor.
   #
-  #  @param pidfile Full path to PID file. Path must exist.
-  def __init__(self, pidfile):
+  #  @param name    Arbitrary nickname for the daemon
+  #  @param pidfile Full path to PID file. Path must exist
+  def __init__(self, name, pidfile):
     ## Path to the file where to write the current PID
     self._pidfile = pidfile
+    ## Daemon's nickname
+    self.name = name
     ## PID of daemon
     self.pid = None
 
