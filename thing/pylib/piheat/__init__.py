@@ -1,5 +1,5 @@
-## @package piheat
-#  Remote heating control for Raspberry Pi: server application
+## @file __init__.py
+#  Main file of the Pi Heat application.
 
 ## This application's version
 __version__ = '0.0.1'
@@ -8,7 +8,7 @@ import time, signal, sys
 from daemon import Daemon
 
 ## @class PiHeat
-#  The PiHeat application, daemonized.
+#  Daemon class for the Pi Heat application (inherits from Daemon).
 class PiHeat(Daemon):
 
   def exit_handler(self, signum, frame):
