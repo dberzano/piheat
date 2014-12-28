@@ -38,12 +38,36 @@ class Daemon:
     self.name = name
     ## PID of daemon
     self.pid = None
-
+    ## Custom logger for control messages
     self.logctl = logging.getLogger('daemonctl')
-    logctl_handler = logging.StreamHandler(stream=sys.stderr)
-    logctl_handler.setFormatter( logging.Formatter(name+': %(levelname)s: %(message)s') )
-    self.logctl.addHandler(logctl_handler)
+
+    logctl_formatter = logging.Formatter(name+': %(levelname)s: %(message)s')
+
+    stderr_handler = logging.StreamHandler(stream=sys.stderr)
+    stderr_handler.setFormatter(logctl_formatter)
+    self.logctl.addHandler(stderr_handler)
+
+    syslog_handler = self._get_syslog_handler()
+    syslog_handler.setFormatter(logctl_formatter)
+    self.logctl.addHandler(syslog_handler)
+
     self.logctl.setLevel(logging.DEBUG)
+
+  ## Gets a syslog handler on Linux and OS X.
+  #
+  #  @return A SysLogHandler, or None in case no syslog facility is found
+  def _get_syslog_handler(self, log_level=logging.DEBUG, formatter=None):
+    syslog_address = None
+    for a in [ '/var/run/syslog', '/dev/log' ]:
+      if os.path.exists(a):
+        syslog_address = a
+        break
+
+    if syslog_address:
+      syslog_handler = logging.handlers.SysLogHandler(address=syslog_address)
+      return syslog_handler
+
+    return None
 
   ## Write PID to pidfile.
   def _write_pid(self):

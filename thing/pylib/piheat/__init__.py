@@ -34,14 +34,8 @@ class PiHeat(Daemon):
     logging.basicConfig(level=log_level, format=msg_format, datefmt=date_format, stream=sys.stderr)
 
     # logs on syslog
-    syslog_address = None
-    for a in [ '/var/run/syslog', '/dev/log' ]:
-      if os.path.exists(a):
-        syslog_address = a
-        break
-
-    if syslog_address:
-      syslog_handler = logging.handlers.SysLogHandler(address=syslog_address)
+    syslog_handler = self._get_syslog_handler()
+    if syslog_handler:
       syslog_handler.setLevel(log_level)
       syslog_handler.setFormatter( logging.Formatter(msg_format, date_format) )
       logging.getLogger('').addHandler(syslog_handler)
