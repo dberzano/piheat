@@ -85,7 +85,8 @@ class Daemon:
   ## Daemonize class. Uses the [Unix double-fork technique](http://stackoverflow.com/questions/88138
   #8/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon).
   #
-  #  @return Current PID when exiting from a parent, 0 when exiting from the child
+  #  @return Current PID when exiting from a parent, 0 when exiting from the child, a negative
+  #          number when `fork()` fails
   def _daemonize(self):
 
     try:
@@ -94,8 +95,8 @@ class Daemon:
         # exit from first parent: return execution to caller
         return pid
     except OSError as e:
-      self.logctl.critical('fork #1 failed: %s\n' % e)
-      sys.exit(1)
+      self.logctl.critical('first fork failed: %s' % e)
+      return -1
 
     # decouple from parent environment
     os.chdir('/')
@@ -109,7 +110,7 @@ class Daemon:
         # exit from second parent
         sys.exit(0)
     except OSError as e:
-      self.logctl.critical('fork #2 failed: %s\n' % e)
+      self.logctl.critical('second fork failed: %s' % e)
       sys.exit(1)
 
     # we are in the daemon: know our pid
@@ -166,13 +167,18 @@ class Daemon:
       return True
 
     # Start the daemon
-    if self._daemonize() == 0:
+    pid = self._daemonize()
+    if pid == 0:
       # child
       self.run()
-    else:
+      return True  # never caught
+    elif pid > 0:
       # main process
       time.sleep(2)
       return self.status()
+    else:
+      # error
+      return False
 
   ## Returns the status of the daemon. If daemon is running, its PID is printed.
   #
