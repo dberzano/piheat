@@ -22,10 +22,10 @@ import logging, logging.handlers
 #    def run(self):
 #      # do things here
 #
-#  prog = MyClass('/tmp/myclass.pid')
+#  prog = MyClass('mydaemon', '/tmp/myclass.pid')
 #  prog.start()
 #  ~~~
-class Daemon:
+class Daemon(object):
 
   ## Constructor.
   #

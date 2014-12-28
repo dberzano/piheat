@@ -13,6 +13,9 @@ from daemon import Daemon
 #  Daemon class for the Pi Heat application (inherits from Daemon).
 class PiHeat(Daemon):
 
+  def __init__(self, name, pidfile):
+    super(PiHeat, self).__init__(name, pidfile)
+
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
 
