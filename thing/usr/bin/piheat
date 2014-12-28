@@ -10,8 +10,11 @@ import sys, os.path
 from piheat import PiHeat
 
 pidfile = os.path.expanduser('~/.piheat/piheat.pid')
+conffile = os.path.expanduser('~/.piheat/piheat.json')
 if pidfile.startswith('/var/lib/piheat'):
+  # system-wide installation detected
   pidfile = '/var/lib/piheat/piheat.pid'
+  conffile = '/etc/piheat/piheat.json'
 
 dir_pidfile = os.path.dirname(pidfile)
 if os.path.isdir(dir_pidfile):
@@ -31,7 +34,7 @@ try:
 except IndexError:
   cmd = None
 
-pih = PiHeat('piheat', pidfile)
+pih = PiHeat('piheat', pidfile, conffile)
 if cmd == 'start':
   r = pih.start()
 elif cmd == 'stop':
@@ -43,6 +46,8 @@ elif cmd == 'nodaemon':
 else:
   sys.stderr.write( 'Usage: %s [start|stop|status|nodaemon]\n' % os.path.basename(sys.argv[0]) )
 
-if r == True:
+if isinstance(r, int):
+  sys.exit(r)
+elif r == True:
   sys.exit(0)
 sys.exit(1)

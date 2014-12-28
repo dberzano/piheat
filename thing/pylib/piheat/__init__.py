@@ -6,15 +6,21 @@ __version__ = '0.0.1'
 
 import time, sys, os
 import logging, logging.handlers
-import random
+import json
 from daemon import Daemon
 
 ## @class PiHeat
 #  Daemon class for the Pi Heat application (inherits from Daemon).
 class PiHeat(Daemon):
 
-  def __init__(self, name, pidfile):
+  def __init__(self, name, pidfile, conffile):
     super(PiHeat, self).__init__(name, pidfile)
+    ## Full path to the configuration file in JSON format
+    self._conffile = conffile
+    ## Thing identifier, as used on dweet.io
+    self._thingid = None
+    ## Message expiration threshold
+    self._messages_expire_after_s = None
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
@@ -36,18 +42,47 @@ class PiHeat(Daemon):
     else:
       logging.error('cannot log to syslog')
 
-  def onexit(self):
-    if random.random() > 0.7:
-      logging.warning('cannot satisfy exit request!')
+  ## Reads daemon configuration from JSON format.
+  def read_conf(self):
+
+    try:
+      with open(self._conffile, 'r') as cfp:
+        jsconf = json.load(cfp)
+    except IOError as e:
+      logging.critical('cannot read configuration file %s: %s' % (self._conffile, e))
       return False
-    else:
-      logging.info('exiting soon, please wait')
-      time.sleep(2)
-      logging.info('bye!')
+    except ValueError as e:
+      logging.critical('malformed configuration file %s: %s' % (self._conffile, e))
+      return False
+
+    # Read variables
+    try:
+      self._messages_expire_after_s = int( jsconf['messages_expire_after_s'] )
+      self._thingid = str( jsconf['thingid'] )
+    except (ValueError, KeyError) as e:
+      logging.critical('invalid or missing value in configuration: %s' % e)
+      return False
+
     return True
 
+  ## Exit handler, overridden from the base Daemon class.
+  #
+  #  @return Always True to satisfy the exit request
+  def onexit(self):
+    return True
+
+  ## Program's entry point, overridden from the base Daemon class.
+  #
+  #  @return Always zero
   def run(self):
+
     self.init_log()
+    if self.read_conf() == False:
+      # configuration error: exit
+      return 1
+
     while True:
-      logging.info('this daemon runs for 10 seconds many times')
+      logging.info('new loop commenced')
       time.sleep(10)
+
+    return 0
