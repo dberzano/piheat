@@ -33,14 +33,16 @@ except IndexError:
 
 pih = PiHeat('piheat', pidfile)
 if cmd == 'start':
-  sys.stderr.write('Starting PiHeat...\n')
-  pih.start()
+  r = pih.start()
 elif cmd == 'stop':
-  sys.stderr.write('Stopping PiHeat...\n')
-  pih.stop()
+  r = pih.stop()
 elif cmd == 'status':
-  pih.status()
+  r = pih.status()
 elif cmd == 'nodaemon':
-  pih.run()
+  r = pih.run()
 else:
   sys.stderr.write( 'Usage: %s [start|stop|nodaemon]\n' % os.path.basename(sys.argv[0]) )
+
+if r == True:
+  sys.exit(0)
+sys.exit(1)

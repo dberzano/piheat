@@ -85,14 +85,14 @@ class Daemon:
   ## Daemonize class. Uses the [Unix double-fork technique](http://stackoverflow.com/questions/88138
   #8/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon).
   #
-  #  @return False on failure, True on success
+  #  @return Current PID when exiting from a parent, 0 when exiting from the child
   def _daemonize(self):
 
     try:
       pid = os.fork()
       if pid > 0:
-        # exit from first parent
-        sys.exit(0)
+        # exit from first parent: return execution to caller
+        return pid
     except OSError as e:
       self.logctl.critical('fork #1 failed: %s\n' % e)
       sys.exit(1)
@@ -130,6 +130,8 @@ class Daemon:
     atexit.register(self._del_pid)
     self._write_pid()
 
+    return 0
+
   ## Delete pidfile.
   def _del_pid(self):
     if os.path.isfile(self._pidfile):
@@ -148,28 +150,41 @@ class Daemon:
     return True
 
   ## Start the daemon. Daemon is sent to background then started.
+  #
+  #  @return True if the final status obtained is that the daemon is running: this means that True
+  #          is returned even in the case where the daemon was already running. False is returned
+  #          otherwise
   def start(self):
+
+    self.logctl.info('starting')
 
     # Check for a pidfile to see if the daemon already runs
     self._read_pid()
 
     if self._is_running():
       self.logctl.info('already running with PID %d' % self.pid);
-      sys.exit(0)
+      return True
 
     # Start the daemon
-    self._daemonize()
-    self.run()
+    if self._daemonize() == 0:
+      # child
+      self.run()
+    else:
+      # main process
+      time.sleep(2)
+      return self.status()
 
   ## Returns the status of the daemon. If daemon is running, its PID is printed.
+  #
+  #  @return True if daemon is running, False if not
   def status(self):
     self._read_pid()
     if self._is_running():
       self.logctl.info('running with PID %d' % self.pid)
-      sys.exit(0)
+      return True
     else:
       self.logctl.info('not running')
-      sys.exit(1)
+      return False
 
   ## Stop the daemon.
   #
@@ -181,14 +196,20 @@ class Daemon:
   #  daemon is abruptly terminated.
   #
   #  Note that this attempt might fail as well.
+  #
+  #  @return True on success, where "success" means that the final status is that the daemon is not
+  #          running: an example of success is when the daemon wasn't running and `stop()` is
+  #          called. False is returned otherwise
   def stop(self):
+
+    self.logctl.info('stopping')
 
     # Get the pid from the pidfile
     self._read_pid()
 
     if not self._is_running():
       self.logctl.info('not running')
-      sys.exit(0)
+      return True
 
     # Try killing the daemon process gracefully
     kill_count = 0
@@ -206,15 +227,14 @@ class Daemon:
 
     except OSError:
       self.logctl.info('exited gracefully')
-      sys.exit(0)
+      return True
 
     if self._is_running():
       self.logctl.error('could not terminate')
-      sys.exit(1)
-    else:
-      self.logctl.warning('force-killed')
+      return False
 
-    sys.exit(0)
+    self.logctl.warning('force-killed')
+    return True
 
   ## Dummy method to be overridden by subclasses.
   #
