@@ -170,6 +170,7 @@ class Daemon:
     pid = self._daemonize()
     if pid == 0:
       # child
+      self._trap_exit_signals(self._exit_handler_real)
       self.run()
       return True  # never caught
     elif pid > 0:
@@ -242,8 +243,44 @@ class Daemon:
     self.logctl.warning('force-killed')
     return True
 
-  ## Dummy method to be overridden by subclasses.
+  ## Maps exit signals to a function.
+  def _trap_exit_signals(self, func):
+    for s in [ signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT ]:
+      signal.signal(s, func)
+
+  ## Signal handler for exit signals that does nothing.
+  #
+  #  Necessary to prevent the real signal handler from being called more than once.
+  def _exit_handler_noop(self, signum, frame):
+    pass
+
+  ## Real exit handler.
+  #
+  #  Calls the `onexit()` function, that must be overridden by subclasses, and exits the program if
+  #  it returns True. Exit signals are temporarily mapped to noop while handling one signal, and the
+  #  mapping is restored in case exiting is cancelled.
+  def _exit_handler_real(self, signum, frame):
+    self._trap_exit_signals(self._exit_handler_noop)
+    if self.onexit():
+      # Exit was confirmed
+      sys.exit(0)
+    else:
+      # Exit was cancelled
+      self._trap_exit_signals(self._exit_handler_real)
+
+  ## Program's exit function, to be overridden by subclasses.
+  #
+  #  This function is called when an exit signal is caught: it should be used to implement cleanup
+  #  functions.
+  #
+  #  @return When returning True, exiting continues, when returning False exiting is cancelled
+  def onexit(self):
+    return True
+
+  ## Program's main loop, to be overridden by subclasses.
   #
   #  It will be called after the process has been daemonized by `start()`.
+  #
+  #  @return It should return an integer in the range 0-255
   def run(self):
-    pass
+    return 0

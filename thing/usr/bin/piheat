@@ -41,7 +41,7 @@ elif cmd == 'status':
 elif cmd == 'nodaemon':
   r = pih.run()
 else:
-  sys.stderr.write( 'Usage: %s [start|stop|nodaemon]\n' % os.path.basename(sys.argv[0]) )
+  sys.stderr.write( 'Usage: %s [start|stop|status|nodaemon]\n' % os.path.basename(sys.argv[0]) )
 
 if r == True:
   sys.exit(0)

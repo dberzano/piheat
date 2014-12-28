@@ -4,23 +4,14 @@
 ## This application's version
 __version__ = '0.0.1'
 
-import time, signal, sys, os
+import time, sys, os
 import logging, logging.handlers
+import random
 from daemon import Daemon
 
 ## @class PiHeat
 #  Daemon class for the Pi Heat application (inherits from Daemon).
 class PiHeat(Daemon):
-
-  def exit_handler(self, signum, frame):
-    signal.signal(signum, self.exit_handler_noop)
-    logging.info('Delaying exit...')
-    time.sleep(2)
-    logging.info('Exiting...')
-    sys.exit(0)
-
-  def exit_handler_noop(self, signum, frame):
-    pass
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
@@ -42,10 +33,18 @@ class PiHeat(Daemon):
     else:
       logging.error('cannot log to syslog')
 
+  def onexit(self):
+    if random.random() > 0.7:
+      logging.warning('cannot satisfy exit request!')
+      return False
+    else:
+      logging.info('exiting soon, please wait')
+      time.sleep(2)
+      logging.info('bye!')
+    return True
+
   def run(self):
     self.init_log()
-    for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
-      signal.signal(sig, self.exit_handler)
     while True:
       logging.info('this daemon runs for 10 seconds many times')
       time.sleep(10)
