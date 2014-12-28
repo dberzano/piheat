@@ -6,13 +6,30 @@ __version__ = '0.0.1'
 
 import time, sys, os
 import logging, logging.handlers
-import json
+import json, requests
 from daemon import Daemon
 
 ## @class PiHeat
 #  Daemon class for the Pi Heat application (inherits from Daemon).
+#
+#  The Pi Heat application is a server-side application supposed to run on a Raspberry Pi or any
+#  other device to control your heating.
+#
+#  The web service [dweet.io](http://dweet.io) is used as intermediate "message board" for Pi Heat:
+#
+#   * a client requests to turn on or off the heating by sending a dweet
+#   * the dweet is picked up by this application and elaborated properly
+#
+#  All communications are RESTful: the [requests](http://docs.python-requests.org/en/latest/) module
+#  is used for this purpose as it is [the most straightforward
+#  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 class PiHeat(Daemon):
 
+  ## Constructor.
+  #
+  #  @param name     Arbitrary nickname for the daemon
+  #  @param pidfile  Full path to PID file. Path must exist
+  #  @param conffile Full path to the configuration file
   def __init__(self, name, pidfile, conffile):
     super(PiHeat, self).__init__(name, pidfile)
     ## Full path to the configuration file in JSON format
@@ -43,6 +60,9 @@ class PiHeat(Daemon):
       logging.error('cannot log to syslog')
 
   ## Reads daemon configuration from JSON format.
+  #
+  #  @return True on success, False on configuration error (missing file, invalid JSON, missing
+  #          required variables, invalid variables type, etc.)
   def read_conf(self):
 
     try:
