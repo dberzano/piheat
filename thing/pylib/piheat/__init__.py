@@ -24,6 +24,10 @@ from timestamp import TimeStamp
 #  All communications are RESTful: the [requests](http://docs.python-requests.org/en/latest/) module
 #  is used for this purpose as it is [the most straightforward
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
+#
+#  @todo Turn off heating on command expiration
+#  @todo Immediately send update after a status change
+#  @todo Reschedule operations immediately if they fail
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -113,6 +117,9 @@ class PiHeat(Daemon):
 
   ## Get latest command via dweet.io.
   def get_latest_command(self):
+
+    logging.debug('checking for commands')
+
     try:
       r = requests.get( 'https://dweet.io/get/dweets/for/%s' % self._thingid )
     except requests.exceptions.RequestException as e:
@@ -162,6 +169,32 @@ class PiHeat(Daemon):
     return True
 
 
+  ## Sends status update.
+  #
+  #  @return  True on success, False if it fails
+  def send_status_update(self):
+
+    if self._heating_status:
+      status_str = 'on'
+    else:
+      status_str = 'off'
+    logging.debug('sending status update (status is %s)' % status_str)
+
+    try:
+      payload = { 'type': 'status', 'status': status_str }
+      r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
+    except requests.exceptions.RequestException as e:
+      logging.error('failed to send update: %s' % e)
+      return False
+
+    if r.status_code != 200:
+      logging.error('invalid status code received: %d' % r.status_code)
+      return False
+
+    logging.info('status update sent (status is %s)' % status_str)
+    return True
+
+
   ## Exit handler, overridden from the base Daemon class.
   #
   #  @return Always True to satisfy the exit request
@@ -172,8 +205,6 @@ class PiHeat(Daemon):
   ## Program's entry point, overridden from the base Daemon class.
   #
   #  @return Always zero
-  #
-  #  @todo Implement status update
   def run(self):
 
     self.init_log()
@@ -190,7 +221,7 @@ class PiHeat(Daemon):
         last_command_check_ts = int(time.time())
 
       if int(time.time())-last_status_update_ts > self._send_status_every_s:
-        logging.debug('status update not yet implemented')
+        self.send_status_update()
         last_status_update_ts = int(time.time())
 
       time.sleep(1)
