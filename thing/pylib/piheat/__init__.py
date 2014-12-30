@@ -8,6 +8,7 @@ import time, sys, os
 import logging, logging.handlers
 import json, requests
 from daemon import Daemon
+from timestamp import TimeStamp
 
 ## @class PiHeat
 #  Daemon class for the Pi Heat application (inherits from Daemon).
@@ -36,8 +37,15 @@ class PiHeat(Daemon):
     self._conffile = conffile
     ## Thing identifier, as used on dweet.io
     self._thingid = None
-    ## Message expiration threshold
-    self._messages_expire_after_s = None
+    ## Commands expiration threshold
+    self._commands_expire_after_s = None
+    ## Query for commands timeout
+    self._get_commands_every_s = None
+    ## Send heating status timeout
+    self._send_status_every_s = None
+    ## Current heating status (boolean)
+    self._heating_status = False
+
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
@@ -59,6 +67,7 @@ class PiHeat(Daemon):
     else:
       logging.error('cannot log to syslog')
 
+
   ## Reads daemon configuration from JSON format.
   #
   #  @return True on success, False on configuration error (missing file, invalid JSON, missing
@@ -77,13 +86,81 @@ class PiHeat(Daemon):
 
     # Read variables
     try:
-      self._messages_expire_after_s = int( jsconf['messages_expire_after_s'] )
+      self._commands_expire_after_s = int( jsconf['commands_expire_after_s'] )
       self._thingid = str( jsconf['thingid'] )
+      self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
+      self._send_status_every_s = int( jsconf['send_status_every_s'] )
     except (ValueError, KeyError) as e:
       logging.critical('invalid or missing value in configuration: %s' % e)
       return False
 
     return True
+
+
+  ## Sets status of heating.
+  #
+  #  @param status True for on, False for off
+  #
+  #  @todo To be fully implemented
+  def set_heating_status(self, status):
+    if status:
+      status_str = 'on'
+    else:
+      status_str = 'off'
+    logging.info('turning heating %s' % status_str)
+    self._heating_status = status
+
+
+  ## Get latest command via dweet.io.
+  def get_latest_command(self):
+    try:
+      r = requests.get( 'https://dweet.io/get/dweets/for/%s' % self._thingid )
+    except requests.exceptions.RequestException as e:
+      logging.error('failed to get latest commands: %s' % e)
+      return False
+
+    if r.status_code != 200:
+      logging.error('invalid status code received: %d' % r.status_code)
+      return False
+
+    try:
+
+      for item in r.json()['with']:
+
+        try:
+
+          now_ts = TimeStamp()
+          msg_ts = TimeStamp.from_iso_str( item['created'] )
+
+          if (now_ts-msg_ts).total_seconds() <= self._commands_expire_after_s:
+            # consider this message: it is still valid
+
+            if item['content']['type'].lower() == 'command':
+              cmd = item['content']['command'].lower()
+              if cmd == 'turnon':
+                if self._heating_status == False:
+                  self.set_heating_status(True)
+                break
+              elif cmd == 'turnoff':
+                if self._heating_status == True:
+                  self.set_heating_status(False)
+                break
+
+          else:
+            # messages from now on are too old, no need to parse the rest
+            logging.debug('found first outdated message, skipping the rest')
+            break
+
+        except (KeyError, TypeError) as e:
+          logging.debug('error parsing, skipped: %s' % e)
+          pass
+
+    except Exception as e:
+      logging.error('error parsing response: %s' % e)
+      return False
+
+    return True
+
 
   ## Exit handler, overridden from the base Daemon class.
   #
@@ -91,9 +168,12 @@ class PiHeat(Daemon):
   def onexit(self):
     return True
 
+
   ## Program's entry point, overridden from the base Daemon class.
   #
   #  @return Always zero
+  #
+  #  @todo Implement status update
   def run(self):
 
     self.init_log()
@@ -101,8 +181,18 @@ class PiHeat(Daemon):
       # configuration error: exit
       return 1
 
+    last_command_check_ts = 0
+    last_status_update_ts = 0
     while True:
-      logging.info('new loop commenced')
-      time.sleep(10)
+
+      if int(time.time())-last_command_check_ts > self._get_commands_every_s:
+        self.get_latest_command()
+        last_command_check_ts = int(time.time())
+
+      if int(time.time())-last_status_update_ts > self._send_status_every_s:
+        logging.debug('status update not yet implemented')
+        last_status_update_ts = int(time.time())
+
+      time.sleep(1)
 
     return 0
