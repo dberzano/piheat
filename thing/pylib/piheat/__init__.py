@@ -27,7 +27,6 @@ from timestamp import TimeStamp
 #
 #  @todo Turn off heating on command expiration
 #  @todo Immediately send update after a status change
-#  @todo Reschedule operations immediately if they fail
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -217,12 +216,12 @@ class PiHeat(Daemon):
     while True:
 
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
-        self.get_latest_command()
-        last_command_check_ts = int(time.time())
+        if self.get_latest_command():
+          last_command_check_ts = int(time.time())
 
       if int(time.time())-last_status_update_ts > self._send_status_every_s:
-        self.send_status_update()
-        last_status_update_ts = int(time.time())
+        if self.send_status_update():
+          last_status_update_ts = int(time.time())
 
       time.sleep(1)
 
