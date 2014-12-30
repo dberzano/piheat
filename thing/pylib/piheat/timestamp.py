@@ -28,7 +28,7 @@ class TimeStamp:
 
   ## Initializes this `TimeStamp` from an ISO-formatted UTC date.
   #
-  #  @param isodate A string with the ISO-formatted date in the UTC timezone.
+  #  @param isodate A string with the ISO-formatted date in the UTC timezone
   @classmethod
   def from_iso_str(cls, isodate):
     iso_to_dt = datetime.datetime.strptime(isodate, '%Y-%m-%dT%H:%M:%S.%fZ')
@@ -49,16 +49,19 @@ class TimeStamp:
   def get_datetime_naive_utc(self):
     return self._dt_utc
 
-  ## Gets a string with a formatted date.
+  ## Gets a string with a formatted date. See
+  #  [here](https://docs.python.org/2/library/time.html#time.strftime) for the format string
+  #  description.
   #
-  #  @param format A format string whose format is described
-  #                [https://docs.python.org/2/library/time.html#time.strftime](here)
+  #  @param format A format string
+  #
+  #  @return A customly formatted string representation of the current instance
   def get_formatted_str(self, format):
     return self._dt_utc.strftime(format)
 
   ## String representation of a date.
   #
-  #  @returns A string representation of current instance
+  #  @return A string representation of the current instance
   def __str__(self):
     #return self._dt_utc.strftime('%Y-%m-%e %H:%M:%S')
     return str(self._dt_utc)
