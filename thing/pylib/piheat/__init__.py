@@ -101,12 +101,19 @@ class PiHeat(Daemon):
     return True
 
 
+  ## Gets status of heating.
+  @property
+  def heating_status(self):
+    return self._heating_status
+
+
   ## Sets status of heating.
   #
   #  @param status True for on, False for off
   #
   #  @todo To be fully implemented
-  def set_heating_status(self, status):
+  @heating_status.setter
+  def heating_status(self, status):
     if status:
       status_str = 'on'
     else:
@@ -174,7 +181,7 @@ class PiHeat(Daemon):
   #  @return  True on success, False if it fails
   def send_status_update(self):
 
-    if self._heating_status:
+    if self.heating_status:
       status_str = 'on'
     else:
       status_str = 'off'
@@ -235,8 +242,8 @@ class PiHeat(Daemon):
       # change status
       send_update_now = False
       if prev_desired_heating_status != self._desired_heating_status:
-        if self._heating_status != self._desired_heating_status:
-          self.set_heating_status(self._desired_heating_status)
+        if self.heating_status != self._desired_heating_status:
+          self.heating_status = self._desired_heating_status
           send_update_now = True
 
       # update status
