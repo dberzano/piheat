@@ -128,7 +128,13 @@ class PiHeat(Daemon):
   ## Gets the desired heating status.
   @property
   def desired_heating_status(self):
-    return self._desired_heating_status, self._desired_heating_status_ts
+    return self._desired_heating_status
+
+
+  ## Gets a `TimeStamp` object corresponding to when the desired heating status was set.
+  @property
+  def desired_heating_status_ts(self):
+    return self._desired_heating_status_ts
 
 
   ## Sets the desired heating status.
@@ -238,7 +244,7 @@ class PiHeat(Daemon):
     last_status_update_ts = 0
     while True:
 
-      prev_desired_heating_status, _ = self.desired_heating_status
+      prev_desired_heating_status = self.desired_heating_status
 
       # retrieve current command
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
@@ -247,7 +253,7 @@ class PiHeat(Daemon):
 
       # check if heating status has expired (note: it is not superfluous, we must do it in case
       # requests for new commands fail)
-      _, lastts = self.desired_heating_status
+      lastts = self.desired_heating_status_ts
       if lastts is not None:
         if (TimeStamp()-lastts).total_seconds() > self._commands_expire_after_s:
           logging.warning('current heating command has expired: turning heating off')
