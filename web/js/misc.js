@@ -272,7 +272,7 @@
       md.update(CurrentStatus.password);
       var pwd = md.digest();  // raw bytes -- can use .toHex()
 
-      // convert message
+      // encrypt message
       var aes_cbc = forge.cipher.createCipher('AES-CBC', pwd);
       aes_cbc.start({ iv: iv });
       aes_cbc.update( forge.util.createBuffer(cleartext) );
@@ -280,13 +280,43 @@
 
       return {
         "nonce": forge.util.encode64(iv),
-        "payload": forge.util.encode64(aes_cbc.output.data)
+        "payload": forge.util.encode64(aes_cbc.output.data)  // aes_cbc.output is a buffer
       };
 
     },
 
     decrypt : function(obj) {
-      return { "not": "implemented" };
+
+      var iv, enctext;
+
+      if (obj.nonce) {
+        iv = forge.util.decode64(obj.nonce);
+      }
+      else {
+        Logger.log('Cipher.decrypt', 'malformed message: cannot find "nonce"');
+        return null;
+      }
+
+      if (obj.payload) {
+        enctext = forge.util.decode64(obj.payload);
+      }
+      else {
+        Logger.log('Cipher.decrypt', 'malformed message: cannot find "payload"');
+        return null;
+      }
+
+      // ensure password is 256 bits long by hashing it
+      var md = forge.md.sha256.create();
+      md.update(CurrentStatus.password);
+      var pwd = md.digest();  // raw bytes -- can use .toHex()
+
+      // decrypt message
+      var aes_cbc = forge.cipher.createDecipher('AES-CBC', pwd);
+      aes_cbc.start({ iv: iv });
+      aes_cbc.update( forge.util.createBuffer(enctext) );
+      aes_cbc.finish();
+
+      return JSON.parse( aes_cbc.output.data );
     }
 
   };
