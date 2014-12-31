@@ -34,7 +34,8 @@
 
   var control_containers = {
     'turnon': '#control-container-turnon',
-    'turnoff': '#control-container-turnoff'
+    'turnoff': '#control-container-turnoff',
+    'debug': '#control-container-debug'
   }
 
   var inputs = {
@@ -53,7 +54,8 @@
     when : null,
     new_status : null,
     new_status_when : null,
-    password : null
+    password : null,
+    debug: false
   };
 
   var check_config = function() {
@@ -94,6 +96,15 @@
     // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
+
+    // debug button
+    if (CurrentStatus.debug) {
+      $(controls.debug).click( Control.debug );
+      $(control_containers.debug).show();
+    }
+    else {
+      $(control_containers.debug).hide();
+    }
 
     $(controls.password).click(function() {
 
@@ -439,6 +450,10 @@
     turn_off : function() {
       $(controls.turnoff).prop('disabled', true);
       Control.push_request('turnoff', controls.turnoff);
+    },
+
+    debug : function() {
+      console.log('no action associated to the debug button');
     },
 
     request_status : function() {
