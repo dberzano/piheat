@@ -316,7 +316,17 @@
       aes_cbc.update( forge.util.createBuffer(enctext) );
       aes_cbc.finish();
 
-      return JSON.parse( aes_cbc.output.data );
+      // wrong password errors are found during JSON parsing
+      var obj;
+      try {
+        obj = JSON.parse( aes_cbc.output.data );
+      }
+      catch (e) {
+        Logger.log('Cipher.decrypt', 'data is unreadable (maybe wrong password?): ' + e);
+        return null;
+      }
+
+      return obj;
     }
 
   };
