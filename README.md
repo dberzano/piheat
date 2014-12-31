@@ -72,3 +72,30 @@ issue a warning if they are not configured.
   be the same on the client and on the server.
 * **messages_expire_after_s**: all dweets older than the specified number of
   seconds will be considered expired, and therefore ignored.
+
+
+Encrypted messages
+------------------
+
+Encrypted JSON-serialized objects can be sent in place of regular cleartext
+objects. Encryption uses the **AES-CBC-256** cipher, and binary data is encoded
+using **base64**.
+
+This is the format of an encrypted message:
+
+```json
+{
+  "payload": "<base64-encoded-json-message>",
+  "nonce": "<base64-encoded>"
+}
+```
+
+* **payload**: contains the original JSON serialized object in base64 notation.
+* **nonce**: the initialization vector used for encrypting the message, in
+  base64 notation. This must be 16 bytes long.
+
+
+Original payload is a JSON *status* or *command* object as described above.
+
+Client-side JavaScript encryption uses
+[Forge](https://github.com/digitalbazaar/forge).
