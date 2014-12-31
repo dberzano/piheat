@@ -150,7 +150,7 @@
       );
     }
 
-  }
+  };
 
   var Display = {
 
@@ -257,6 +257,36 @@
       else {
         $(update_status.error).hide();
       }
+    }
+
+  };
+
+  var Cipher = {
+
+    encrypt : function(obj) {
+      var iv = forge.random.getBytesSync(16);  // raw bytes
+      var cleartext = JSON.stringify(obj, null, 0);  // string
+
+      // ensure password is 256 bits long by hashing it
+      var md = forge.md.sha256.create();
+      md.update(CurrentStatus.password);
+      var pwd = md.digest();  // raw bytes -- can use .toHex()
+
+      // convert message
+      var aes_cbc = forge.cipher.createCipher('AES-CBC', pwd);
+      aes_cbc.start({ iv: iv });
+      aes_cbc.update( forge.util.createBuffer(cleartext) );
+      aes_cbc.finish();
+
+      return {
+        "nonce": forge.util.encode64(iv),
+        "payload": forge.util.encode64(aes_cbc.output.data)
+      };
+
+    },
+
+    decrypt : function(obj) {
+      return { "not": "implemented" };
     }
 
   };
