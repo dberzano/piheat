@@ -120,9 +120,6 @@
     });
     $(inputs.password).focus();
 
-    // TODO: actually check password (skip it for now)
-    $(controls.password).trigger('click');
-
   };
 
   var Logger = {
@@ -362,8 +359,15 @@
 
             if ( now - item_date < cfg.messages_expire_after_s*1000 ) {
               // consider only "recent" dweets (can be configured)
-              if (!status && item.content.type == 'status') {
-                status = item.content.status.toLowerCase();
+
+              msg = Cipher.decrypt(item.content);
+              if (msg == null) {
+                Logger.log('Control.read_status', 'cannot decrypt, ignoring');
+                return true;  // continue from $.each()
+              }
+
+              if (!status && msg.type == 'status' && typeof msg.status !== 'undefined') {
+                status = msg.status.toLowerCase();
                 if (status == 'on' || status == 'off') {
                   status_date = item_date;
                 }
@@ -373,8 +377,8 @@
                   status = null;
                 }
               }
-              else if (!new_status && item.content.type == 'command') {
-                command = item.content.command.toLowerCase();
+              else if (!new_status && msg.type == 'command' && typeof msg.command !== 'undefined') {
+                command = msg.command.toLowerCase();
                 if (command == 'turnon') {
                   new_status = 'on';
                   new_status_date = item_date;
@@ -447,7 +451,7 @@
 
       $.post(
         'https://dweet.io/dweet/for/' + cfg.thingid,
-        { type: 'command', command: req }
+        Cipher.encrypt( { type: 'command', command: req } )
       )
         .fail(function() {
           Display.request_error(true);
