@@ -24,6 +24,9 @@ from timestamp import TimeStamp
 #  All communications are RESTful: the [requests](http://docs.python-requests.org/en/latest/) module
 #  is used for this purpose as it is [the most straightforward
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
+#
+#  @todo Send messages expiration to the client
+#  @todo Cryptography
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -122,6 +125,20 @@ class PiHeat(Daemon):
     self._heating_status = status
 
 
+  ## Gets the desired heating status.
+  @property
+  def desired_heating_status(self):
+    return self._desired_heating_status, self._desired_heating_status_ts
+
+
+  ## Sets the desired heating status.
+  #
+  #  @param status_with_timestamp A tuple with the status and the timestamp
+  @desired_heating_status.setter
+  def desired_heating_status(self, status_with_timestamp):
+    self._desired_heating_status, self._desired_heating_status_ts = status_with_timestamp
+
+
   ## Get latest command via dweet.io.
   def get_latest_command(self):
 
@@ -152,12 +169,10 @@ class PiHeat(Daemon):
             if item['content']['type'].lower() == 'command':
               cmd = item['content']['command'].lower()
               if cmd == 'turnon':
-                self._desired_heating_status = True
-                self._desired_heating_status_ts = msg_ts
+                self.desired_heating_status = True, msg_ts
                 break
               elif cmd == 'turnoff':
-                self._desired_heating_status = False
-                self._desired_heating_status_ts = msg_ts
+                self.desired_heating_status = False, msg_ts
                 break
 
           else:
@@ -223,7 +238,7 @@ class PiHeat(Daemon):
     last_status_update_ts = 0
     while True:
 
-      prev_desired_heating_status = self._desired_heating_status
+      prev_desired_heating_status, _ = self.desired_heating_status
 
       # retrieve current command
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
@@ -232,12 +247,11 @@ class PiHeat(Daemon):
 
       # check if heating status has expired (note: it is not superfluous, we must do it in case
       # requests for new commands fail)
-      if self._desired_heating_status_ts is not None:
-        nowts = TimeStamp()
-        if (nowts-self._desired_heating_status_ts).total_seconds() > self._commands_expire_after_s:
+      _, lastts = self.desired_heating_status
+      if lastts is not None:
+        if (TimeStamp()-lastts).total_seconds() > self._commands_expire_after_s:
           logging.warning('current heating command has expired: turning heating off')
-          self._desired_heating_status = False
-          self._desired_heating_status_ts = None
+          self.desired_heating_status = False, None
 
       # change status
       send_update_now = False
