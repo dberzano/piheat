@@ -170,22 +170,22 @@
         // hide all status labels
         $(value).hide();
       });
-      $.each(control_containers, function(key, value) {
-        // hide all turn on/off buttons
-        $(value).hide();
-      })
 
       if (CurrentStatus.status == 'on') {
         $(heating_status.on).show();
+        $(control_containers.turnon).hide();
         $(control_containers.turnoff).show();
       }
       else if (CurrentStatus.status == 'off') {
         $(heating_status.off).show();
         $(control_containers.turnon).show();
+        $(control_containers.turnoff).hide();
       }
       else {
         // invalid/unknown
         $(heating_status.unknown).show();
+        $(control_containers.turnon).hide();
+        $(control_containers.turnoff).hide();
       }
 
     },
@@ -283,12 +283,12 @@
       // encrypt message
       var aes_cbc = forge.cipher.createCipher('AES-CBC', pwd);
       aes_cbc.start({ iv: iv });
-      aes_cbc.update( forge.util.createBuffer(cleartext) );
+      aes_cbc.update( forge.util.createBuffer(Cipher.native2ascii(cleartext)) );
       aes_cbc.finish();
 
       return {
         "nonce": forge.util.encode64(iv),
-        "payload": forge.util.encode64(aes_cbc.output.data)  // aes_cbc.output is a buffer
+        "payload": forge.util.encode64(aes_cbc.output.bytes())  // aes_cbc.output is a buffer
       };
 
     },
@@ -321,13 +321,14 @@
       // decrypt message
       var aes_cbc = forge.cipher.createDecipher('AES-CBC', pwd);
       aes_cbc.start({ iv: iv });
-      aes_cbc.update( forge.util.createBuffer(enctext) );
+      aes_cbc.update( forge.util.createBuffer(enctext, 'raw') );
       aes_cbc.finish();
 
       // wrong password errors are found during JSON parsing
       var obj;
       try {
-        obj = JSON.parse( aes_cbc.output.data );
+        dec = aes_cbc.output.bytes();
+        obj = JSON.parse( dec );
       }
       catch (e) {
         Logger.log('Cipher.decrypt', 'data is unreadable (maybe wrong password?): ' + e);
@@ -335,6 +336,21 @@
       }
 
       return obj;
+    },
+
+    // http://lithium.homenet.org/~shanq/bitsnbytes/native2ascii_en.html
+    native2ascii : function(str) {
+      var out = '';
+      for (var i=0; i<str.length; i++) {
+        if (str.charCodeAt(i) < 0x80) {
+          out += str.charAt(i);
+        }
+        else {
+          var u = '' + str.charCodeAt(i).toString(16);
+          out += '\\u' + (u.length === 2 ? '00' + u : u.length === 3 ? '0' + u : u);
+        }
+      }
+      return out;
     }
 
   };
