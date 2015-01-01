@@ -184,8 +184,13 @@ class PiHeat(Daemon):
           if (now_ts-msg_ts).total_seconds() <= self._commands_expire_after_s:
             # consider this message: it is still valid
 
-            if item['content']['type'].lower() == 'command':
-              cmd = item['content']['command'].lower()
+            msg = self.decrypt_msg(item['content'])
+            if msg is None:
+              logging.warning('cannot decrypt message, check password')
+
+            elif msg['type'].lower() == 'command':
+
+              cmd = msg['command'].lower()
               if cmd == 'turnon':
                 self.desired_heating_status = True, msg_ts
                 break
@@ -221,7 +226,7 @@ class PiHeat(Daemon):
     logging.debug('sending status update (status is %s)' % status_str)
 
     try:
-      payload = { 'type': 'status', 'status': status_str }
+      payload = self.encrypt_msg({ 'type': 'status', 'status': status_str })
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:
       logging.error('failed to send update: %s' % e)
