@@ -55,7 +55,8 @@
     new_status : null,
     new_status_when : null,
     password : null,
-    debug: false
+    debug: false,
+    msg_expiry_s: null
   };
 
   var check_config = function() {
@@ -65,9 +66,9 @@
     else if (!cfg.thingid) {
       return '<b>thingid</b> is mandatory';
     }
-    else if (isNaN(parseInt(cfg.messages_expire_after_s)) ||
-      parseInt(cfg.messages_expire_after_s) < 5) {
-      return '<b>messages_expire_after_s</b> must be set to no less than 5 seconds';
+    else if (isNaN(parseInt(cfg.default_msg_expiry_s)) ||
+      parseInt(cfg.default_msg_expiry_s) < 5) {
+      return '<b>default_msg_expiry_s</b> must be set to no less than 5 seconds';
     }
     return null;
   };
@@ -84,6 +85,9 @@
       $(pages.errors).show();
       return;
     }
+
+    CurrentStatus.msg_expiry_s = cfg.default_msg_expiry_s;
+    Logger.log('init', 'initial message exipry set to ' + cfg.default_msg_expiry_s + ' seconds');
 
     $(pages.control).hide();
     $(pages.password).show();
@@ -384,7 +388,7 @@
 
             item_date = new Date(item.created);
 
-            if ( now - item_date < cfg.messages_expire_after_s*1000 ) {
+            if ( now - item_date < CurrentStatus.msg_expiry_s*1000 ) {
               // consider only "recent" dweets (can be configured)
 
               msg = Cipher.decrypt(item.content);
@@ -397,6 +401,20 @@
                 status = msg.status.toLowerCase();
                 if (status == 'on' || status == 'off') {
                   status_date = item_date;
+                  if (typeof msg.msgexp_s !== 'undefined') {
+                    new_msgexp_s = parseInt(msg.msgexp_s);
+                    if (new_msgexp_s > 5) {
+                      if (new_msgexp_s != CurrentStatus.msgexp_s) {
+                        CurrentStatus.msgexp_s = new_msgexp_s;
+                        Logger.log('Control.read_status', 'message exipry remotely set to ' +
+                          CurrentStatus.msgexp_s + ' seconds');
+                      }
+                    }
+                    else {
+                      Logger.log('Control.read_status',
+                        'invalid message expiry received: ' + msg.msgexp_s);
+                    }
+                  }
                 }
                 else {
                   // status message is not valid: skip

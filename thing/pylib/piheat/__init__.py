@@ -31,7 +31,6 @@ from timestamp import TimeStamp
 #  is used for this purpose as it is [the most straightforward
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 #
-#  @todo Send messages expiration to the client
 #  @todo Keep track of nonces
 class PiHeat(Daemon):
 
@@ -46,8 +45,8 @@ class PiHeat(Daemon):
     self._conffile = conffile
     ## Thing identifier, as used on dweet.io
     self._thingid = None
-    ## Commands expiration threshold
-    self._commands_expire_after_s = None
+    ## Messages expiration threshold: honored while retrieving commands, sent to client for config
+    self._msg_expiry_s = None
     ## Query for commands timeout
     self._get_commands_every_s = None
     ## Send heating status timeout
@@ -101,7 +100,7 @@ class PiHeat(Daemon):
 
     # Read variables
     try:
-      self._commands_expire_after_s = int( jsconf['commands_expire_after_s'] )
+      self._msg_expiry_s = int( jsconf['msg_expiry_s'] )
       self._thingid = str( jsconf['thingid'] )
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
@@ -181,7 +180,7 @@ class PiHeat(Daemon):
           now_ts = TimeStamp()
           msg_ts = TimeStamp.from_iso_str( item['created'] )
 
-          if (now_ts-msg_ts).total_seconds() <= self._commands_expire_after_s:
+          if (now_ts-msg_ts).total_seconds() <= self._msg_expiry_s:
             # consider this message: it is still valid
 
             msg = self.decrypt_msg(item['content'])
@@ -226,7 +225,11 @@ class PiHeat(Daemon):
     logging.debug('sending status update (status is %s)' % status_str)
 
     try:
-      payload = self.encrypt_msg({ 'type': 'status', 'status': status_str })
+      payload = self.encrypt_msg({
+        'type': 'status',
+        'status': status_str,
+        'msgexp_s': self._msg_expiry_s
+      })
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:
       logging.error('failed to send update: %s' % e)
@@ -346,7 +349,7 @@ class PiHeat(Daemon):
       # requests for new commands fail)
       lastts = self.desired_heating_status_ts
       if lastts is not None:
-        if (TimeStamp()-lastts).total_seconds() > self._commands_expire_after_s:
+        if (TimeStamp()-lastts).total_seconds() > self._msg_expiry_s:
           logging.warning('current heating command has expired: turning heating off')
           self.desired_heating_status = False, None
 
