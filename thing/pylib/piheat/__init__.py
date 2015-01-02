@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*- 
+
 ## @file __init__.py
 #  Main file of the Pi Heat application.
 
@@ -7,6 +9,10 @@ __version__ = '0.0.1'
 import time, sys, os
 import logging, logging.handlers
 import json, requests
+import base64
+from Crypto.Hash import SHA256
+from Crypto.Cipher import AES
+from Crypto import Random
 from daemon import Daemon
 from timestamp import TimeStamp
 
@@ -26,7 +32,7 @@ from timestamp import TimeStamp
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 #
 #  @todo Send messages expiration to the client
-#  @todo Cryptography
+#  @todo Keep track of nonces
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -52,6 +58,8 @@ class PiHeat(Daemon):
     self._desired_heating_status = False
     ## When latest command was issued (a `TimeStamp` instance)
     self._desired_heating_status_ts = None
+    ## SHA256 hash of encryption password
+    self._password_hash = None
 
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
@@ -97,6 +105,10 @@ class PiHeat(Daemon):
       self._thingid = str( jsconf['thingid'] )
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
+
+      hashfunc = SHA256.new()
+      hashfunc.update( str(jsconf['password']) )
+      self._password_hash = hashfunc.digest()
     except (ValueError, KeyError) as e:
       logging.critical('invalid or missing value in configuration: %s' % e)
       return False
@@ -172,8 +184,13 @@ class PiHeat(Daemon):
           if (now_ts-msg_ts).total_seconds() <= self._commands_expire_after_s:
             # consider this message: it is still valid
 
-            if item['content']['type'].lower() == 'command':
-              cmd = item['content']['command'].lower()
+            msg = self.decrypt_msg(item['content'])
+            if msg is None:
+              logging.warning('cannot decrypt message, check password')
+
+            elif msg['type'].lower() == 'command':
+
+              cmd = msg['command'].lower()
               if cmd == 'turnon':
                 self.desired_heating_status = True, msg_ts
                 break
@@ -209,7 +226,7 @@ class PiHeat(Daemon):
     logging.debug('sending status update (status is %s)' % status_str)
 
     try:
-      payload = { 'type': 'status', 'status': status_str }
+      payload = self.encrypt_msg({ 'type': 'status', 'status': status_str })
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:
       logging.error('failed to send update: %s' % e)
@@ -221,6 +238,80 @@ class PiHeat(Daemon):
 
     logging.info('status update sent (status is %s)' % status_str)
     return True
+
+
+  ## Encrypts an object using AES-CBC.
+  #
+  #  @param obj Source object
+  #
+  #  @return The encrypted object, with a `nonce` and a `payload`
+  def encrypt_msg(self, obj):
+
+    # random IV
+    rndfp = Random.new()
+    iv = rndfp.read(16)
+
+    # convert to JSON (output is always ASCII)
+    obj_json = str( json.dumps(obj) )
+
+    # pad to blocks of 16 bytes
+    pad_len = 16 - len(obj_json) % 16
+    obj_json = obj_json + chr(pad_len)*pad_len
+
+    # encrypt
+    aes = AES.new(self._password_hash, AES.MODE_CBC, iv)
+    obj_enc = aes.encrypt(obj_json)
+
+    # convert to base64
+    obj_enc_b64 = base64.b64encode(obj_enc)
+    iv_b64 = base64.b64encode(iv)
+
+    # assemble final object
+    return {
+      'nonce': iv_b64,
+      'payload': obj_enc_b64
+    }
+
+
+  ## Decrypts an object using AES-CBC.
+  #
+  #  @param obj Encrypted object (must have a `nonce` and `payload` key)
+  #
+  #  @return The decrypted object
+  def decrypt_msg(self, obj):
+
+    if not 'nonce' in obj or not 'payload' in obj:
+      return None
+
+    try:
+      iv = base64.b64decode( obj['nonce'] )
+      enc = base64.b64decode( obj['payload'] )
+    except TypeError as e:
+      logging.debug('cannot decode base64: %s' % e)
+      return None
+
+    # decrypt
+    # note: does not check if password is ok! JSON will fail in case of garbage
+    try:
+      aes = AES.new(self._password_hash, AES.MODE_CBC, iv)
+    except ValueError as e:
+      logging.debug('cannot decrypt: %s' % e)
+
+    dec = aes.decrypt(enc)
+
+    # last byte contains how many bytes were used for padding
+    # padding is constituted by the last byte repeated (last byte) times
+    pad_len = ord(dec[-1])
+    dec = dec[0:-pad_len]
+
+    # decode from JSON
+    try:
+      dec = json.loads(dec)
+    except ValueError as e:
+      logging.debug('cannot decode JSON: %s' % e)
+      return None
+
+    return dec
 
 
   ## Exit handler, overridden from the base Daemon class.

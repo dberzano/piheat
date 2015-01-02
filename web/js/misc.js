@@ -34,7 +34,8 @@
 
   var control_containers = {
     'turnon': '#control-container-turnon',
-    'turnoff': '#control-container-turnoff'
+    'turnoff': '#control-container-turnoff',
+    'debug': '#control-container-debug'
   }
 
   var inputs = {
@@ -53,7 +54,8 @@
     when : null,
     new_status : null,
     new_status_when : null,
-    password : null
+    password : null,
+    debug: false
   };
 
   var check_config = function() {
@@ -95,6 +97,15 @@
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
 
+    // debug button
+    if (CurrentStatus.debug) {
+      $(controls.debug).click( Control.debug );
+      $(control_containers.debug).show();
+    }
+    else {
+      $(control_containers.debug).hide();
+    }
+
     $(controls.password).click(function() {
 
       // password button pressed
@@ -119,9 +130,6 @@
       }
     });
     $(inputs.password).focus();
-
-    // TODO: actually check password (skip it for now)
-    $(controls.password).trigger('click');
 
   };
 
@@ -150,7 +158,7 @@
       );
     }
 
-  }
+  };
 
   var Display = {
 
@@ -162,22 +170,22 @@
         // hide all status labels
         $(value).hide();
       });
-      $.each(control_containers, function(key, value) {
-        // hide all turn on/off buttons
-        $(value).hide();
-      })
 
       if (CurrentStatus.status == 'on') {
         $(heating_status.on).show();
+        $(control_containers.turnon).hide();
         $(control_containers.turnoff).show();
       }
       else if (CurrentStatus.status == 'off') {
         $(heating_status.off).show();
         $(control_containers.turnon).show();
+        $(control_containers.turnoff).hide();
       }
       else {
         // invalid/unknown
         $(heating_status.unknown).show();
+        $(control_containers.turnon).hide();
+        $(control_containers.turnoff).hide();
       }
 
     },
@@ -261,6 +269,92 @@
 
   };
 
+  var Cipher = {
+
+    encrypt : function(obj) {
+      var iv = forge.random.getBytesSync(16);  // raw bytes
+      var cleartext = JSON.stringify(obj, null, 0);  // string
+
+      // ensure password is 256 bits long by hashing it
+      var md = forge.md.sha256.create();
+      md.update(CurrentStatus.password);
+      var pwd = md.digest();  // raw bytes -- can use .toHex()
+
+      // encrypt message
+      var aes_cbc = forge.cipher.createCipher('AES-CBC', pwd);
+      aes_cbc.start({ iv: iv });
+      aes_cbc.update( forge.util.createBuffer(Cipher.native2ascii(cleartext)) );
+      aes_cbc.finish();
+
+      return {
+        "nonce": forge.util.encode64(iv),
+        "payload": forge.util.encode64(aes_cbc.output.bytes())  // aes_cbc.output is a buffer
+      };
+
+    },
+
+    decrypt : function(obj) {
+
+      var iv, enctext;
+
+      if (obj.nonce) {
+        iv = forge.util.decode64(obj.nonce);
+      }
+      else {
+        Logger.log('Cipher.decrypt', 'malformed message: cannot find "nonce"');
+        return null;
+      }
+
+      if (obj.payload) {
+        enctext = forge.util.decode64(obj.payload);
+      }
+      else {
+        Logger.log('Cipher.decrypt', 'malformed message: cannot find "payload"');
+        return null;
+      }
+
+      // ensure password is 256 bits long by hashing it
+      var md = forge.md.sha256.create();
+      md.update(CurrentStatus.password);
+      var pwd = md.digest();  // raw bytes -- can use .toHex()
+
+      // decrypt message
+      var aes_cbc = forge.cipher.createDecipher('AES-CBC', pwd);
+      aes_cbc.start({ iv: iv });
+      aes_cbc.update( forge.util.createBuffer(enctext, 'raw') );
+      aes_cbc.finish();
+
+      // wrong password errors are found during JSON parsing
+      var obj;
+      try {
+        dec = aes_cbc.output.bytes();
+        obj = JSON.parse( dec );
+      }
+      catch (e) {
+        Logger.log('Cipher.decrypt', 'data is unreadable (maybe wrong password?): ' + e);
+        return null;
+      }
+
+      return obj;
+    },
+
+    // http://lithium.homenet.org/~shanq/bitsnbytes/native2ascii_en.html
+    native2ascii : function(str) {
+      var out = '';
+      for (var i=0; i<str.length; i++) {
+        if (str.charCodeAt(i) < 0x80) {
+          out += str.charAt(i);
+        }
+        else {
+          var u = '' + str.charCodeAt(i).toString(16);
+          out += '\\u' + (u.length === 2 ? '00' + u : u.length === 3 ? '0' + u : u);
+        }
+      }
+      return out;
+    }
+
+  };
+
   var Control = {
 
     read_status_timeout : null,
@@ -292,8 +386,15 @@
 
             if ( now - item_date < cfg.messages_expire_after_s*1000 ) {
               // consider only "recent" dweets (can be configured)
-              if (!status && item.content.type == 'status') {
-                status = item.content.status.toLowerCase();
+
+              msg = Cipher.decrypt(item.content);
+              if (msg == null) {
+                Logger.log('Control.read_status', 'cannot decrypt, ignoring');
+                return true;  // continue from $.each()
+              }
+
+              if (!status && msg.type == 'status' && typeof msg.status !== 'undefined') {
+                status = msg.status.toLowerCase();
                 if (status == 'on' || status == 'off') {
                   status_date = item_date;
                 }
@@ -303,8 +404,8 @@
                   status = null;
                 }
               }
-              else if (!new_status && item.content.type == 'command') {
-                command = item.content.command.toLowerCase();
+              else if (!new_status && msg.type == 'command' && typeof msg.command !== 'undefined') {
+                command = msg.command.toLowerCase();
                 if (command == 'turnon') {
                   new_status = 'on';
                   new_status_date = item_date;
@@ -367,6 +468,10 @@
       Control.push_request('turnoff', controls.turnoff);
     },
 
+    debug : function() {
+      console.log('no action associated to the debug button');
+    },
+
     request_status : function() {
       Control.push_request('status');
     },
@@ -377,7 +482,7 @@
 
       $.post(
         'https://dweet.io/dweet/for/' + cfg.thingid,
-        { type: 'command', command: req }
+        Cipher.encrypt( { type: 'command', command: req } )
       )
         .fail(function() {
           Display.request_error(true);
