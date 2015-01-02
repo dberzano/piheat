@@ -57,7 +57,8 @@
     password : null,
     debug: false,
     msg_expiry_s: null,
-    msg_update_s: null
+    msg_update_s: null,
+    name: null
   };
 
   var check_config = function() {
@@ -97,11 +98,11 @@
     CurrentStatus.msg_update_s = cfg.default_msg_update_s;
     Logger.log('init', 'initial message update set to ' + cfg.default_msg_update_s + ' seconds');
 
+    CurrentStatus.name = cfg.thingid;
+
     $(pages.control).hide();
     $(pages.password).show();
     $(pages.errors).hide();
-
-    $(texts.thingname).text( cfg.thingid );
 
     Display.heating_status();
 
@@ -198,6 +199,11 @@
         $(heating_status.unknown).show();
         $(control_containers.turnon).hide();
         $(control_containers.turnoff).hide();
+      }
+
+      // thing's friendly name
+      if ( $(texts.thingname).text() != CurrentStatus.name ) {
+        $(texts.thingname).text( CurrentStatus.name );
       }
 
     },
@@ -425,6 +431,14 @@
                     if (msg.msgupd_s != CurrentStatus.msg_update_s && msg.msgupd_s > 5) {
                       CurrentStatus.msg_update_s = parseInt(msg.msgupd_s);
                       Logger.log('Control.read_status', 'new update rate: '+msg.msgupd_s+' s');
+                    }
+                  }
+                  catch (e) {}
+
+                  try {
+                    if (msg.name != CurrentStatus.name) {
+                      CurrentStatus.name = msg.name;
+                      Logger.log('Control.read_status', 'new name: '+msg.name+' s');
                     }
                   }
                   catch (e) {}

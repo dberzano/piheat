@@ -45,6 +45,8 @@ class PiHeat(Daemon):
     self._conffile = conffile
     ## Thing identifier, as used on dweet.io
     self._thingid = None
+    ## Friendly name of the thing
+    self._thingname = None
     ## Messages expiration threshold: honored while retrieving commands, sent to client for config
     self._msg_expiry_s = None
     ## Query for commands timeout
@@ -102,6 +104,7 @@ class PiHeat(Daemon):
     try:
       self._msg_expiry_s = int( jsconf['msg_expiry_s'] )
       self._thingid = str( jsconf['thingid'] )
+      self._thingname = str( jsconf['thingname'] )
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
 
@@ -229,7 +232,8 @@ class PiHeat(Daemon):
         'type': 'status',
         'status': status_str,
         'msgexp_s': self._msg_expiry_s,
-        'msgupd_s': self._send_status_every_s
+        'msgupd_s': self._send_status_every_s,
+        'name': self._thingname
       })
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:

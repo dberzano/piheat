@@ -22,7 +22,8 @@ Status messages are sent by the device to report current heating status.
   "status": "on|off",
   "temp": 123,
   "msgexp_s": 123,
-  "msgupd_s": 123
+  "msgupd_s": 123,
+  "name": "thing's friendly name"
 }
 ```
 
@@ -33,6 +34,7 @@ Status messages are sent by the device to report current heating status.
   the maximum validity of a dweet.
 * `msgupd_s` *(optional)*: an `Integer` value used to tell the client what is
   the status update rate of the server.
+* `name` *(optional)*: a `String` with the thing's friendly name.
 
 
 ### Commands
