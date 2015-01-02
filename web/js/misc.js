@@ -56,7 +56,8 @@
     new_status_when : null,
     password : null,
     debug: false,
-    msg_expiry_s: null
+    msg_expiry_s: null,
+    msg_update_s: null
   };
 
   var check_config = function() {
@@ -68,7 +69,11 @@
     }
     else if (isNaN(parseInt(cfg.default_msg_expiry_s)) ||
       parseInt(cfg.default_msg_expiry_s) < 5) {
-      return '<b>default_msg_expiry_s</b> must be set to no less than 5 seconds';
+        return '<b>default_msg_expiry_s</b> must be set to no less than 5 seconds';
+    }
+    else if (isNaN(parseInt(cfg.default_msg_update_s)) ||
+      parseInt(cfg.default_msg_update_s) < 5) {
+        return '<b>default_msg_update_s</b> must be set to no less than 5 seconds';
     }
     return null;
   };
@@ -87,7 +92,10 @@
     }
 
     CurrentStatus.msg_expiry_s = cfg.default_msg_expiry_s;
-    Logger.log('init', 'initial message exipry set to ' + cfg.default_msg_expiry_s + ' seconds');
+    Logger.log('init', 'initial message expiry set to ' + cfg.default_msg_expiry_s + ' seconds');
+
+    CurrentStatus.msg_update_s = cfg.default_msg_update_s;
+    Logger.log('init', 'initial message update set to ' + cfg.default_msg_update_s + ' seconds');
 
     $(pages.control).hide();
     $(pages.password).show();
@@ -368,7 +376,10 @@
         clearTimeout(Control.read_status_timeout);
       }
       Control.read_status();
-      Control.read_status_timeout = setTimeout(Control.read_status_loop, 10000);
+      Control.read_status_timeout = setTimeout(
+        Control.read_status_loop,
+        CurrentStatus.msg_update_s*1000
+      );
     },
 
     read_status : function() {
@@ -401,20 +412,23 @@
                 status = msg.status.toLowerCase();
                 if (status == 'on' || status == 'off') {
                   status_date = item_date;
-                  if (typeof msg.msgexp_s !== 'undefined') {
-                    new_msgexp_s = parseInt(msg.msgexp_s);
-                    if (new_msgexp_s > 5) {
-                      if (new_msgexp_s != CurrentStatus.msgexp_s) {
-                        CurrentStatus.msgexp_s = new_msgexp_s;
-                        Logger.log('Control.read_status', 'message exipry remotely set to ' +
-                          CurrentStatus.msgexp_s + ' seconds');
-                      }
-                    }
-                    else {
-                      Logger.log('Control.read_status',
-                        'invalid message expiry received: ' + msg.msgexp_s);
+
+                  try {
+                    if (msg.msgexp_s != CurrentStatus.msg_expiry_s && msg.msgexp_s > 5) {
+                      CurrentStatus.msg_expiry_s = parseInt(msg.msgexp_s);
+                      Logger.log('Control.read_status', 'new message expiry: '+msg.msgexp_s+' s');
                     }
                   }
+                  catch (e) {}
+
+                  try {
+                    if (msg.msgupd_s != CurrentStatus.msg_update_s && msg.msgupd_s > 5) {
+                      CurrentStatus.msg_update_s = parseInt(msg.msgupd_s);
+                      Logger.log('Control.read_status', 'new update rate: '+msg.msgupd_s+' s');
+                    }
+                  }
+                  catch (e) {}
+
                 }
                 else {
                   // status message is not valid: skip

@@ -228,7 +228,8 @@ class PiHeat(Daemon):
       payload = self.encrypt_msg({
         'type': 'status',
         'status': status_str,
-        'msgexp_s': self._msg_expiry_s
+        'msgexp_s': self._msg_expiry_s,
+        'msgupd_s': self._send_status_every_s
       })
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:
