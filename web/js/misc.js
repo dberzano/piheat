@@ -418,7 +418,8 @@
               item_real_date = new Date(msg.timestamp);
 
               // check timestamp consistency (CurrentStatus.tolerance_ms must be set)
-              if ( Math.abs(item_date-item_real_date) > CurrentStatus.tolerance_ms ) {
+              if ( isNaN(item_real_date.getTime()) ||
+                Math.abs(item_date-item_real_date) > CurrentStatus.tolerance_ms ) {
                 Logger.log('Control.read_status', 'message/server timestamps mismatch, ignoring');
                 return true;
               }
