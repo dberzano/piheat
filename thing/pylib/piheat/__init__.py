@@ -227,9 +227,11 @@ class PiHeat(Daemon):
       status_str = 'off'
     logging.debug('sending status update (status is %s)' % status_str)
 
+    now = TimeStamp()
     try:
       payload = self.encrypt_msg({
         'type': 'status',
+        'timestamp': str(now),  # ISO UTC
         'status': status_str,
         'msgexp_s': self._msg_expiry_s,
         'msgupd_s': self._send_status_every_s,
