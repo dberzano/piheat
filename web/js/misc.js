@@ -528,10 +528,6 @@
       console.log('no action associated to the debug button');
     },
 
-    request_status : function() {
-      Control.push_request('status');
-    },
-
     push_request : function(req) {
 
       Logger.log('Control.push_request', 'requesting command: \"' + req + '\"');
