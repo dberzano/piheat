@@ -60,6 +60,8 @@
     msg_update_s: null,
     name: null,
     tolerance_ms: 15000,
+    expect_cmd_result: false,
+    msg_update_expect_cmd_result_s: 7,
   };
 
   var check_config = function() {
@@ -378,15 +380,37 @@
 
     read_status_timeout : null,
 
-    read_status_loop : function() {
+    read_status_loop : function(do_delay) {
+
+      var timeout_ms;
+
       if (Control.read_status_timeout) {
         clearTimeout(Control.read_status_timeout);
       }
-      Control.read_status();
-      Control.read_status_timeout = setTimeout(
-        Control.read_status_loop,
-        CurrentStatus.msg_update_s*1000
-      );
+
+      if (do_delay) {
+        // read status after a delay
+        Logger.log('Control.read_status_loop', 'delaying read_status by ' +
+          CurrentStatus.msg_update_expect_cmd_result_s + ' s');
+        Control.read_status_timeout = setTimeout(
+          Control.read_status_loop,
+          CurrentStatus.msg_update_expect_cmd_result_s*1000
+        );
+      }
+      else {
+        Control.read_status();
+
+        if (CurrentStatus.expect_cmd_result) {
+          timeout_ms = CurrentStatus.msg_update_expect_cmd_result_s * 1000;
+        }
+        else {
+          timeout_ms = CurrentStatus.msg_update_s * 1000;
+        }
+
+        Logger.log('Control.read_status_loop', 'next read_status in ' + timeout_ms + ' ms');
+        Control.read_status_timeout = setTimeout( Control.read_status_loop, timeout_ms );
+      }
+
     },
 
     read_status : function() {
@@ -495,13 +519,17 @@
             CurrentStatus.when = null;
           }
           if (new_status) {
-            Logger.log('Control.read_status', 'new_status: ' + new_status + ' on ' + new_status_date);
+            Logger.log('Control.read_status', 'new_status: '+new_status+' on '+new_status_date);
             CurrentStatus.new_status_when = new_status_date;
           }
           else {
             Logger.log('Control.read_status', 'new_status: <unknown>');
             CurrentStatus.new_status_when = null;
           }
+
+          // expecting command result? faster update
+          CurrentStatus.expect_cmd_result = (status && new_status && status != new_status);
+
           Display.update_error(false);
           Display.heating_status();
           Display.last_updated_loop();
@@ -551,6 +579,7 @@
             CurrentStatus.new_status = 'off';
           }
           Display.request_received_loop();
+          Control.read_status_loop(true);  // true = delayed request
         });
 
     }
