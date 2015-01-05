@@ -58,7 +58,8 @@
     debug: false,
     msg_expiry_s: null,
     msg_update_s: null,
-    name: null
+    name: null,
+    tolerance_ms: 15000,
   };
 
   var check_config = function() {
@@ -414,10 +415,19 @@
                 return true;  // continue from $.each()
               }
 
+              item_real_date = new Date(msg.timestamp);
+
+              // check timestamp consistency (CurrentStatus.tolerance_ms must be set)
+              if ( isNaN(item_real_date.getTime()) ||
+                Math.abs(item_date-item_real_date) > CurrentStatus.tolerance_ms ) {
+                Logger.log('Control.read_status', 'message/server timestamps mismatch, ignoring');
+                return true;
+              }
+
               if (!status && msg.type == 'status' && typeof msg.status !== 'undefined') {
                 status = msg.status.toLowerCase();
                 if (status == 'on' || status == 'off') {
-                  status_date = item_date;
+                  status_date = item_real_date;
 
                   try {
                     if (msg.msgexp_s != CurrentStatus.msg_expiry_s && msg.msgexp_s > 5) {
@@ -454,11 +464,11 @@
                 command = msg.command.toLowerCase();
                 if (command == 'turnon') {
                   new_status = 'on';
-                  new_status_date = item_date;
+                  new_status_date = item_real_date;
                 }
                 else if (command == 'turnoff') {
                   new_status = 'off';
-                  new_status_date = item_date;
+                  new_status_date = item_real_date;
                 }
                 else {
                   // command is not valid: skip
@@ -528,7 +538,7 @@
 
       $.post(
         'https://dweet.io/dweet/for/' + cfg.thingid,
-        Cipher.encrypt( { type: 'command', command: req } )
+        Cipher.encrypt( { type: 'command', command: req, timestamp: (new Date()).toISOString() } )
       )
         .fail(function() {
           Display.request_error(true);

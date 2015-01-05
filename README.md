@@ -9,7 +9,12 @@ Uses [dweet.io](http://dweet.io/) for asynchronous communication.
 Allowed JSON messages
 ---------------------
 
-All messages are JSON and have a `type` field indicating the type.
+All messages are JSON and have two mandatory fields:
+
+* a `type` field indicating the type
+* a `timestamp` indicating when the message was created
+
+The `timestamp` is an ISO-formatted UTC date.
 
 
 ### Status messages
@@ -19,6 +24,7 @@ Status messages are sent by the device to report current heating status.
 ```json
 {
   "type": "status",
+  "timestamp": "2014-07-30T21:06:15.600000Z",
   "status": "on|off",
   "temp": 123,
   "msgexp_s": 123,
@@ -44,6 +50,7 @@ Commands are sent by clients to control heating.
 ```json
 {
   "type": "command",
+  "timestamp": "2014-07-30T21:06:15.600000Z",
   "command": "turnon|turnoff|status"
 }
 ```

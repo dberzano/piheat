@@ -32,6 +32,7 @@ from timestamp import TimeStamp
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 #
 #  @todo Keep track of nonces
+#  @todo Separate command timeout and status timeout
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -61,6 +62,8 @@ class PiHeat(Daemon):
     self._desired_heating_status_ts = None
     ## SHA256 hash of encryption password
     self._password_hash = None
+    ## Tolerance (in msec) between message's declared timestamp and server's timestamp
+    self._tolerance_ms = 15000
 
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
@@ -190,15 +193,23 @@ class PiHeat(Daemon):
             if msg is None:
               logging.warning('cannot decrypt message, check password')
 
-            elif msg['type'].lower() == 'command':
+            else:
 
-              cmd = msg['command'].lower()
-              if cmd == 'turnon':
-                self.desired_heating_status = True, msg_ts
-                break
-              elif cmd == 'turnoff':
-                self.desired_heating_status = False, msg_ts
-                break
+              msg_real_ts = TimeStamp.from_iso_str( msg['timestamp'] )
+              msg_delta = msg_ts - msg_real_ts
+
+              if abs(msg_delta.total_seconds())*1000 > self._tolerance_ms:
+                logging.warning('message timestamps mismatch, ignoring')
+
+              elif msg['type'].lower() == 'command':
+
+                cmd = msg['command'].lower()
+                if cmd == 'turnon':
+                  self.desired_heating_status = True, msg_ts
+                  break
+                elif cmd == 'turnoff':
+                  self.desired_heating_status = False, msg_ts
+                  break
 
           else:
             # messages from now on are too old, no need to parse the rest
@@ -227,9 +238,11 @@ class PiHeat(Daemon):
       status_str = 'off'
     logging.debug('sending status update (status is %s)' % status_str)
 
+    now = TimeStamp()
     try:
       payload = self.encrypt_msg({
         'type': 'status',
+        'timestamp': str(now),  # ISO UTC
         'status': status_str,
         'msgexp_s': self._msg_expiry_s,
         'msgupd_s': self._send_status_every_s,
