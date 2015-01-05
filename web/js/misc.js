@@ -438,7 +438,7 @@
                   try {
                     if (msg.name != CurrentStatus.name) {
                       CurrentStatus.name = msg.name;
-                      Logger.log('Control.read_status', 'new name: '+msg.name+' s');
+                      Logger.log('Control.read_status', 'new name: '+msg.name);
                     }
                   }
                   catch (e) {}
