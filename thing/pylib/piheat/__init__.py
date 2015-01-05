@@ -32,6 +32,7 @@ from timestamp import TimeStamp
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 #
 #  @todo Keep track of nonces
+#  @todo Separate command timeout and status timeout
 class PiHeat(Daemon):
 
   ## Constructor.
