@@ -50,6 +50,7 @@ Commands are sent by clients to control heating.
 ```json
 {
   "type": "command",
+  "timestamp": "2014-07-30T21:06:15.600000Z",
   "command": "turnon|turnoff|status"
 }
 ```

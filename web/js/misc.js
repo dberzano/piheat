@@ -538,7 +538,7 @@
 
       $.post(
         'https://dweet.io/dweet/for/' + cfg.thingid,
-        Cipher.encrypt( { type: 'command', command: req } )
+        Cipher.encrypt( { type: 'command', command: req, timestamp: (new Date()).toISOString() } )
       )
         .fail(function() {
           Display.request_error(true);
