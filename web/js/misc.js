@@ -391,7 +391,7 @@
 
     read_status : function() {
 
-      $.get('https://dweet.io/get/dweets/for/' + cfg.thingid)
+      $.ajax('https://dweet.io/get/dweets/for/' + cfg.thingid, { async: false })
         .done(function(data) {
 
           var now = new Date();
