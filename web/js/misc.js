@@ -255,7 +255,7 @@
 
     request_received : function() {
 
-      if (CurrentStatus.new_status && CurrentStatus.new_status != CurrentStatus.status) {
+      if (CurrentStatus.expect_cmd_result) {
         // command not yet accepted
         $(request_status.sent).show();
         var disable_turnon = (CurrentStatus.new_status == 'on');
@@ -569,6 +569,7 @@
           Logger.log('Control.push_request', 'requesting command failed');
         })
         .done(function () {
+          CurrentStatus.expect_cmd_result = true;
           Display.request_error(false);
           if (req == 'turnon') {
             CurrentStatus.new_status_when = new Date();
