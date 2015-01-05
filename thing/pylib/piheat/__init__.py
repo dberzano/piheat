@@ -32,7 +32,6 @@ from timestamp import TimeStamp
 #  one](http://isbullsh.it/2012/06/Rest-api-in-python/).
 #
 #  @todo Keep track of nonces
-#  @todo Separate command timeout and status timeout
 class PiHeat(Daemon):
 
   ## Constructor.
@@ -48,8 +47,10 @@ class PiHeat(Daemon):
     self._thingid = None
     ## Friendly name of the thing
     self._thingname = None
-    ## Messages expiration threshold: honored while retrieving commands, sent to client for config
+    ## Messages expiration threshold: not used by server, only sent to client for config
     self._msg_expiry_s = None
+    ## Commands expiration threshold: honored while retrieving commands
+    self._cmd_expiry_s = None
     ## Query for commands timeout
     self._get_commands_every_s = None
     ## Send heating status timeout
@@ -106,6 +107,7 @@ class PiHeat(Daemon):
     # Read variables
     try:
       self._msg_expiry_s = int( jsconf['msg_expiry_s'] )
+      self._cmd_expiry_s = int( jsconf['cmd_expiry_s'] )
       self._thingid = str( jsconf['thingid'] )
       self._thingname = str( jsconf['thingname'] )
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
@@ -186,7 +188,7 @@ class PiHeat(Daemon):
           now_ts = TimeStamp()
           msg_ts = TimeStamp.from_iso_str( item['created'] )
 
-          if (now_ts-msg_ts).total_seconds() <= self._msg_expiry_s:
+          if (now_ts-msg_ts).total_seconds() <= self._cmd_expiry_s:
             # consider this message: it is still valid
 
             msg = self.decrypt_msg(item['content'])
@@ -367,7 +369,7 @@ class PiHeat(Daemon):
       # requests for new commands fail)
       lastts = self.desired_heating_status_ts
       if lastts is not None:
-        if (TimeStamp()-lastts).total_seconds() > self._msg_expiry_s:
+        if (TimeStamp()-lastts).total_seconds() > self._cmd_expiry_s:
           logging.warning('current heating command has expired: turning heating off')
           self.desired_heating_status = False, None
 
