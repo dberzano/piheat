@@ -51,7 +51,7 @@ Commands are sent by clients to control heating.
 {
   "type": "command",
   "timestamp": "2014-07-30T21:06:15.600000Z",
-  "command": "turnon|turnoff|status"
+  "command": "turnon|turnoff"
 }
 ```
 
@@ -59,7 +59,6 @@ Command is a case-insensitive string. Possible commands:
 
 * **turnon**: requests to turn heating on
 * **turnoff**: requests to turn heating off
-* **status**: requests device to report status
 
 
 Client configuration
