@@ -12,7 +12,8 @@
 
   var update_status = {
     'updated': '#update-status-updated',
-    'error': '#update-status-error'
+    'error': '#update-status-error',
+    'updating': '#update-status-updating'
   };
 
   var request_status = {
@@ -279,7 +280,12 @@
       }
     },
 
+    updating : function() {
+      $(update_status.updating).fadeIn( { duration: 'slow', queue: true } );
+    },
+
     update_error : function(iserr) {
+      $(update_status.updating).fadeOut( { duration: 'slow', queue: true } );
       if (iserr) {
         $(update_status.error).show();
       }
@@ -414,6 +420,8 @@
     },
 
     read_status : function() {
+
+      Display.updating();
 
       $.get('https://dweet.io/get/dweets/for/' + cfg.thingid)
         .done(function(data) {
