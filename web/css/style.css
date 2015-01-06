@@ -16,6 +16,15 @@
   margin-bottom: 20px;
 }
 
+.piheat-topspace {
+  margin-top: 20px;
+}
+
+.piheat-credits {
+  margin-top: 40px;
+  color: #c0c0c0;
+}
+
 body {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
