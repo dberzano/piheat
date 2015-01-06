@@ -29,6 +29,10 @@
   color: #6f5499;
 }
 
+div#piheat-labels {
+  height: 25px;
+}
+
 #update-status-updating {
   color: #c0c0c0;
 }
