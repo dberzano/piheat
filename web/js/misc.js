@@ -511,7 +511,8 @@
           CurrentStatus.status = status;
           CurrentStatus.new_status = new_status;
           if (status) {
-            Logger.log('Control.read_status', 'status: ' + status + ' on ' + status_date);
+            Logger.log('Control.read_status', 'status: \"' + status +
+              '\" on ' + status_date.toISOString());
             CurrentStatus.when = status_date;
           }
           else {
@@ -519,7 +520,8 @@
             CurrentStatus.when = null;
           }
           if (new_status) {
-            Logger.log('Control.read_status', 'new_status: '+new_status+' on '+new_status_date);
+            Logger.log('Control.read_status', 'new_status: \"' + new_status +
+              '\" on ' + new_status_date.toISOString());
             CurrentStatus.new_status_when = new_status_date;
           }
           else {
