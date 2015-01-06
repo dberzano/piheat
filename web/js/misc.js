@@ -31,13 +31,15 @@
   var controls = {
     'password': '#control-password',
     'turnon': '#control-turnon',
-    'turnoff': '#control-turnoff'
+    'turnoff': '#control-turnoff',
+    'reload': '#control-reload'
   }
 
   var control_containers = {
     'turnon': '#control-container-turnon',
     'turnoff': '#control-container-turnoff',
-    'debug': '#control-container-debug'
+    'debug': '#control-container-debug',
+    'reload': '#control-container-reload'
   }
 
   var inputs = {
@@ -114,6 +116,7 @@
     // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
+    $(controls.reload).click( Control.reload );
 
     // debug button
     if (CurrentStatus.debug) {
@@ -193,17 +196,20 @@
         $(heating_status.on).show();
         $(control_containers.turnon).hide();
         $(control_containers.turnoff).show();
+        $(control_containers.reload).hide();
       }
       else if (CurrentStatus.status == 'off') {
         $(heating_status.off).show();
         $(control_containers.turnon).show();
         $(control_containers.turnoff).hide();
+        $(control_containers.reload).hide();
       }
       else {
         // invalid/unknown
         $(heating_status.unknown).show();
         $(control_containers.turnon).hide();
         $(control_containers.turnoff).hide();
+        $(control_containers.reload).show();
       }
 
       // thing's friendly name
@@ -282,10 +288,12 @@
     },
 
     updating : function() {
+      $(controls.reload).prop('disabled', true);
       $(update_status.updating).fadeIn( { duration: 'slow', queue: true } );
     },
 
     update_error : function(iserr, ispwderr) {
+      $(controls.reload).prop('disabled', false);
       $(update_status.updating).fadeOut( { duration: 'slow', queue: true } );
       if (iserr) {
         $(update_status.error).show();
@@ -570,6 +578,22 @@
     turn_off : function() {
       $(controls.turnoff).prop('disabled', true);
       Control.push_request('turnoff', controls.turnoff);
+    },
+
+    reload : function() {
+
+      $(inputs.password).val('');
+
+      $(pages.control).hide();
+      $(pages.password).show();
+
+      // end all loops
+      clearTimeout(Control.read_status_timeout);
+      clearTimeout(Display.last_updated_timeout);
+      clearTimeout(Display.request_received_timeout);
+
+      $(inputs.password).focus();
+
     },
 
     debug : function() {
