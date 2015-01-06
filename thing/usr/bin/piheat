@@ -35,6 +35,7 @@ except IndexError:
   cmd = None
 
 pih = PiHeat('piheat', pidfile, conffile)
+r = None
 if cmd == 'start':
   r = pih.start()
 elif cmd == 'stop':
