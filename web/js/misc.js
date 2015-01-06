@@ -457,6 +457,22 @@
             if ( now - item_date < CurrentStatus.msg_expiry_s*1000 ) {
               // consider only "recent" dweets (can be configured)
 
+              // nonce must be unique
+              nonce_raw = item.content.nonce;
+              if (typeof nonce_raw === 'undefined') {
+                Logger.log('Control.read_status', 'nonce not found for current dweet');
+                return true;  // continue from $.each()
+              }
+
+              for (j=data.with.length-1; j>key; j--) {
+                other_nonce_raw = data.with[j].content.nonce;
+                if (nonce_raw == other_nonce_raw) {
+                  Logger.log('Control.read_status',
+                    'duplicate nonce (' + nonce_raw + '): ignoring, possible replay attack!');
+                  return true;  // continue from $.each()
+                }
+              }
+
               msg = Cipher.decrypt(item.content);
               if (msg == null) {
                 Logger.log('Control.read_status', 'cannot decrypt, ignoring');
