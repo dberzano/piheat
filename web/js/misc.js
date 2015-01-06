@@ -13,7 +13,8 @@
   var update_status = {
     'updated': '#update-status-updated',
     'error': '#update-status-error',
-    'updating': '#update-status-updating'
+    'updating': '#update-status-updating',
+    'password': '#update-status-password'
   };
 
   var request_status = {
@@ -132,7 +133,7 @@
 
       // reset errors
       Display.request_error(false);
-      Display.update_error(false);
+      Display.update_error(false, false);
 
       // commence loops
       Control.read_status_loop();
@@ -284,13 +285,19 @@
       $(update_status.updating).fadeIn( { duration: 'slow', queue: true } );
     },
 
-    update_error : function(iserr) {
+    update_error : function(iserr, ispwderr) {
       $(update_status.updating).fadeOut( { duration: 'slow', queue: true } );
       if (iserr) {
         $(update_status.error).show();
       }
       else {
         $(update_status.error).hide();
+      }
+      if (ispwderr) {
+        $(update_status.password).show();
+      }
+      else {
+        $(update_status.password).hide();
       }
     }
 
@@ -432,6 +439,7 @@
           var new_status = null;
           var status_date = null;
           var new_status_date = null;
+          var password_error = false;
 
           // data is an object; most recent is on top, so we can break at first valid entry
           $.each( data.with, function(key, item) {
@@ -444,6 +452,7 @@
               msg = Cipher.decrypt(item.content);
               if (msg == null) {
                 Logger.log('Control.read_status', 'cannot decrypt, ignoring');
+                password_error = true;
                 return true;  // continue from $.each()
               }
 
@@ -522,6 +531,7 @@
             Logger.log('Control.read_status', 'status: \"' + status +
               '\" on ' + status_date.toISOString());
             CurrentStatus.when = status_date;
+            password_error = false;
           }
           else {
             Logger.log('Control.read_status', 'status: <unknown>');
@@ -540,14 +550,14 @@
           // expecting command result? faster update
           CurrentStatus.expect_cmd_result = (status && new_status && status != new_status);
 
-          Display.update_error(false);
+          Display.update_error(false, password_error);
           Display.heating_status();
           Display.last_updated_loop();
           Display.request_received_loop();
 
         })
         .fail(function() {
-          Display.update_error(true);
+          Display.update_error(true, false);
           Logger.log('Control.read_status', 'failed reading dweets');
         })
     },
