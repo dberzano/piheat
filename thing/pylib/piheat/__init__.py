@@ -181,7 +181,7 @@ class PiHeat(Daemon):
 
     try:
 
-      for item in r.json()['with']:
+      for idx, item in enumerate( r.json()['with'] ):
 
         try:
 
@@ -191,8 +191,22 @@ class PiHeat(Daemon):
           if (now_ts-msg_ts).total_seconds() <= self._cmd_expiry_s:
             # consider this message: it is still valid
 
-            msg = self.decrypt_msg(item['content'])
-            if msg is None:
+            # nonce must be unique
+            nonce = item['content']['nonce']
+            nonce_is_unique = True
+
+            for ridx, ritem in reversed( list(enumerate(r.json()['with']))[idx+1:] ):
+              if nonce == ritem['content']['nonce']:
+                nonce_is_unique = False
+                break
+
+            if nonce_is_unique:
+              msg = self.decrypt_msg(item['content'])
+
+            if not nonce_is_unique:
+              logging.warning('duplicated nonce (%s): possible replay attack, ignoring' % nonce)
+
+            elif msg is None:
               logging.warning('cannot decrypt message, check password')
 
             else:
