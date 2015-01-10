@@ -1,6 +1,28 @@
 /// \class dht11
 /// \brief Read data from the DHT11 temperature/humidity sensor from an Arduino
 ///
+/// Whenever a read from sensor ends successfully, the latest values are stored, and also placed in
+/// an history: the history, of a user-configurable size, is used to smooth out fluctuations by
+/// averaging its values.
+///
+/// Typical usage:
+///
+/// ~~~{.cpp}
+/// #include "dht11.h"
+///
+/// dht11 myTempSensor(2 /* digi pin */, 10 /* hist size */);
+///
+/// void loop() {
+///   if ( myTempSensor.read() == DHT11_OK ) {
+///     Serial.println( myTempSensor.get_last_temperature() );
+///     Serial.println( myTempSensor.get_last_humidity() );
+///     Serial.println( myTempSensor.get_weighted_temperature(), 2 );
+///     Serial.println( myTempSensor.get_weighted_humidity(), 2 );
+///   }
+///   delay(1000 /* msec */);
+/// }
+/// ~~~
+///
 /// Datasheet for DHT11 is [available here](http://www.micro4you.com/files/sensor/DHT11.pdf).
 ///
 /// Original version is [available here](http://playground.arduino.cc/Main/DHT11Lib).
@@ -22,16 +44,32 @@
 #define DHT11_ERR_CKSUM -1
 #define DHT11_ERR_TMOUT -2
 
+#define DHT11_INVALID -9999
+
 class dht11 {
 
   private:
-    int pin;
 
-  public:
-    dht11(int _pin);
-    int read();
+    int pin;
     int humidity;
     int temperature;
+    unsigned int hist_sz;
+    unsigned int hist_idx;
+    unsigned int hist_nelm;
+    float *temp_hist;
+    float *humi_hist;
+
+    float mavg(float *vals, unsigned int n);
+
+  public:
+
+    dht11(int _pin, unsigned int _hist_sz);
+    ~dht11();
+    int read();
+    float get_weighted_temperature();
+    float get_weighted_humidity();
+    int get_last_temperature();
+    int get_last_humidity();
 
 };
 
