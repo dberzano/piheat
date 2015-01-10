@@ -1,9 +1,23 @@
-// dht11lib from here: http://playground.arduino.cc/main/DHT11Lib
+/// \file dht11test.ino
+/// \brief DHT11 sample program for Arduino
+///
+/// Reads data from a DHT11 sensor and outputs it on the serial console. Outputs instant data every
+/// second, plus a "moving average" of the last `MAVG_SIZE` values.
+///
+/// Digital pin for data can be configured with `PIN_DHT11`.
+///
+/// \author Dario Berzano
+
 
 #include "dht11.h"
 
+/// Digital PIN of the Arduino connected to the DHT11
 #define PIN_DHT11 2
+
+/// Size of the moving average array
 #define MAVG_SIZE 10
+
+/// Special value to ignore in the moving average array
 #define MAVG_IGNORE -9999
 
 dht11 DHT11;
@@ -12,6 +26,7 @@ float humi_history[MAVG_SIZE];
 int history_idx = 0;
 int count = 0;
 
+/// First function called of the sketck.
 void setup() {
   Serial.begin(115200);
   Serial.println("BOOTING DHT11 TEST PROGRAM");
@@ -21,6 +36,12 @@ void setup() {
   }
 }
 
+/// Calculates the moving average.
+///
+/// \return The moving average
+///
+/// \param vals An array of float
+/// \param size Number of elements of the array
 float mavg(float *vals, unsigned int size) {
   float sum = 0.;
   float n = 0;
@@ -33,6 +54,7 @@ float mavg(float *vals, unsigned int size) {
   return sum/n;
 }
 
+/// Main loop.
 void loop() {
 
   //Serial.println("ACQUIRING");
