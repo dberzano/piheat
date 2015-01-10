@@ -1,2 +1,4 @@
-doxy/html
-doxy/Doxyfile
+/doxy/html
+/doxy/Doxyfile
+.DS_Store
+._*
