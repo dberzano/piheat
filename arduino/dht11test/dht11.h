@@ -1,5 +1,5 @@
 /// \class dht11
-/// \brief Read data from the DHT11 temperature/humidity sensor from an Arduino
+/// \brief Read data from the DHT11 temperature and humidity sensor from an Arduino
 ///
 /// Whenever a read from sensor ends successfully, the latest values are stored, and also placed in
 /// an history: the history, of a user-configurable size, is used to smooth out fluctuations by
@@ -22,6 +22,44 @@
 ///   delay(1000 /* msec */);
 /// }
 /// ~~~
+///
+/// Using `get_weighted_temperature()` and `get_weighted_humidity()` with a properly sized history
+/// helps smoothing out small fluctuations.
+///
+/// The following cycle is used to request data:
+///
+/// ~~~{.txt}
+///       ----        ====        ====        ======== ...
+///      /    \      /    \      /    \      /
+///     /      \    /      \    /      \    /
+/// ----        ====        ====        ====           ...
+/// ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^  ^^^^^^^^^^^^^^
+///  Handshake: LOW+HIGH    Data Bit 0    Data Bit 1
+///                         HIGH <40µs    HIGH >40µs
+///
+///                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+///                              40 bits in total
+/// ~~~
+///
+/// Where:
+///
+/// - `---` is data sent by the Arduino
+/// - `===` is data sent by the DHT11
+///
+/// Breaking the cycle down:
+///
+/// - a `LOW` then `HIGH` is sent by the Arduino
+/// - sensor replies with `LOW` then `HIGH`, then stards sending data
+/// - bit 0 is a `LOW` followed by a "short" `HIGH` (< 40µs)
+/// - bit 1 is a `LOW` followed by a "long" `HIGH` (> 40µs)
+///
+/// There are **40 bits (5 bytes)** in the response. Each byte is:
+///
+/// 1. humidity value, in %
+/// 2. always zero
+/// 3. temperature value, in °C
+/// 4. always zero
+/// 5. sum of humidity and temperature (a simple checksum)
 ///
 /// Datasheet for DHT11 is [available here](http://www.micro4you.com/files/sensor/DHT11.pdf).
 ///
