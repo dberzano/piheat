@@ -22,12 +22,17 @@
 #define DHT11_ERR_CKSUM -1
 #define DHT11_ERR_TMOUT -2
 
-class dht11
-{
+class dht11 {
+
+  private:
+    int pin;
+
   public:
-    int read(int pin);
+    dht11(int _pin);
+    int read();
     int humidity;
     int temperature;
+
 };
 
 #endif  // dht11_h

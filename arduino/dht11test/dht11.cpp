@@ -2,7 +2,9 @@
 
 #include "dht11.h"
 
-int dht11::read(int pin) {
+dht11::dht11(int _pin) : pin(_pin) {}
+
+int dht11::read() {
 
   // Receive buffer
   uint8_t bits[5];
@@ -10,7 +12,7 @@ int dht11::read(int pin) {
   uint8_t idx = 0;
 
   // Zero buffer
-  for (int i=0; i< 5; i++) {
+  for (int i=0; i<5; i++) {
     bits[i] = 0;
   }
 

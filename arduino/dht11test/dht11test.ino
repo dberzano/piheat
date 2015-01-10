@@ -20,7 +20,7 @@
 /// Special value to ignore in the moving average array
 #define MAVG_IGNORE -9999
 
-dht11 DHT11;
+dht11 DHT11(PIN_DHT11);
 float temp_history[MAVG_SIZE];
 float humi_history[MAVG_SIZE];
 int history_idx = 0;
@@ -58,7 +58,7 @@ float mavg(float *vals, unsigned int size) {
 void loop() {
 
   //Serial.println("ACQUIRING");
-  int ans = DHT11.read(PIN_DHT11);
+  int ans = DHT11.read();
 
   float temp, humidity;
 
