@@ -44,7 +44,7 @@ class RCSwitch {
 
   public:
 
-    RCSwitch();
+    RCSwitch(int _nLedDebugPin = -1);
     
     void switchOn(int nGroupNumber, int nSwitchNumber);
     void switchOff(int nGroupNumber, int nSwitchNumber);
@@ -114,6 +114,7 @@ class RCSwitch {
     #endif
 
     int nTransmitterPin;
+    int nLedDebugPin;
     int nPulseLength;
     int nRepeatTransmit;
     char nProtocol;

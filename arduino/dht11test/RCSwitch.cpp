@@ -11,7 +11,10 @@ int RCSwitch::nReceiveTolerance = 60;
 #endif
 unsigned int RCSwitch::timings[RCSWITCH_MAX_CHANGES];
 
-RCSwitch::RCSwitch() {
+/// Constructor.
+///
+/// \param _nLedDebugPin Pin associated to a debug led (-1 for none)
+RCSwitch::RCSwitch(int _nLedDebugPin) : nLedDebugPin(_nLedDebugPin) {
   this->nTransmitterPin = -1;
   this->setPulseLength(350);
   this->setRepeatTransmit(10);
@@ -23,12 +26,12 @@ RCSwitch::RCSwitch() {
   #endif
 }
 
-/**
-  * Sets the protocol to send.
-  */
+/// Sets the protocol to send.
+///
+/// \param nProtocol Can be 1, 2 or 3
 void RCSwitch::setProtocol(int nProtocol) {
   this->nProtocol = nProtocol;
-  if (nProtocol == 1){
+  if (nProtocol == 1) {
     this->setPulseLength(350);
   }
   else if (nProtocol == 2) {
@@ -78,6 +81,9 @@ void RCSwitch::setReceiveTolerance(int nPercent) {
 void RCSwitch::enableTransmit(int nTransmitterPin) {
   this->nTransmitterPin = nTransmitterPin;
   pinMode(this->nTransmitterPin, OUTPUT);
+  if (nLedDebugPin != -1) {
+    pinMode(nLedDebugPin, OUTPUT);
+  }
 }
 
 /// Disable transmissions.
@@ -418,18 +424,24 @@ void RCSwitch::transmit(int nHighPulses, int nLowPulses) {
   if (this->nTransmitterPin != -1) {
     #if not defined( RCSwitchDisableReceiving )
     if (this->nReceiverInterrupt != -1) {
-        this->disableReceive();
-        disabled_Receive = true;
+      this->disableReceive();
+      disabled_Receive = true;
     }
     #endif
     digitalWrite(this->nTransmitterPin, HIGH);
-    delayMicroseconds( this->nPulseLength * nHighPulses);
+    if (nLedDebugPin != -1) {
+      digitalWrite(nLedDebugPin, HIGH);
+    }
+    delayMicroseconds( this->nPulseLength * nHighPulses );
     digitalWrite(this->nTransmitterPin, LOW);
-    delayMicroseconds( this->nPulseLength * nLowPulses);
+    if (nLedDebugPin != -1) {
+      digitalWrite(nLedDebugPin, LOW);
+    }
+    delayMicroseconds( this->nPulseLength * nLowPulses );
     
     #if not defined( RCSwitchDisableReceiving )
     if(disabled_Receive){
-        this->enableReceive(nReceiverInterrupt_backup);
+      this->enableReceive(nReceiverInterrupt_backup);
     }
     #endif
   }

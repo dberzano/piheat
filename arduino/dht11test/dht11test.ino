@@ -27,7 +27,7 @@
 dht11 DHT11(PIN_DHT11, MAVG_SIZE);
 int count = 0;
 
-RCSwitch rfSend = RCSwitch();
+RCSwitch rfSend = RCSwitch(PIN_LED);
 
 /// First function called of the sketck.
 void setup() {
