@@ -3,6 +3,7 @@
 #include "RFComm.h"
 #include "Arduino.h"
 
+
 /// Constructor.
 ///
 /// \param _dataPin Pin corresponding to the RF transmitter
@@ -18,12 +19,14 @@ void RFComm::setupSend() {
   }
 }
 
+
 /// Sets protocol.
 ///
 /// \param proto Protocol, may be RFCPROTO_1, RFCPROTO_2 or RFCPROTO_3
 void RFComm::setProto(unsigned int _proto) {
   proto = _proto;
 }
+
 
 /// Sends data.
 ///
@@ -55,6 +58,7 @@ void RFComm::send(uint8_t *buf, unsigned int len) {
   }
 
 }
+
 
 /// Sends a raw hi+lo ramp.
 ///
@@ -88,8 +92,10 @@ void RFComm::sendSymbol(symbol_t &sym, unsigned int pulseLen_us) {
 
 }
 
-proto_t RFComm::symToPulses[3] = {};
 
+/// Sets some initial static variables.
+///
+/// Must be called when including this library.
 void RFComm::init() {
 
   symToPulses[RFCPROTO_1].pulseLength_us = 350;
@@ -108,3 +114,6 @@ void RFComm::init() {
   symToPulses[RFCPROTO_3].symbols[RFCSYM_SYNC] = {  1, 71 };
 
 }
+
+
+proto_t RFComm::symToPulses[3] = {};

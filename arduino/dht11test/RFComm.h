@@ -1,6 +1,26 @@
 /// \class RFComm
 /// \brief RF transmission for Arduino
 ///
+/// How to use it:
+///
+/// ~~~{.cpp}
+/// #include "RCSwitch.h"
+///
+/// RFComm rfSend(4 /* pin rf */, 13 /* pin led */);
+///
+/// void setup() {
+///   RFComm::init();
+///   rfSend.setupSend();
+/// }
+///
+/// void loop() {
+///   const unsigned int dataSize = 4;
+///   uint8_t data[dataSize];
+///   /* fill data[] */
+///   rfSend.send(data, dataSize);
+/// }
+/// ~~~
+///
 /// Source of inspiration [is here](http://code.google.com/p/rc-switch/).
 ///
 /// \author Dario Berzano
