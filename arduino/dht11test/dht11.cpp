@@ -21,36 +21,46 @@ dht11::~dht11() {
 
 /// Calculates the arithmetic average of the input array.
 ///
-/// \return The average
+/// \return Integer part of average: use `avgDec` for getting decimals
 ///
 /// \param vals An array of int
 /// \param n Number of elements of the array to consider (must be > 0, unchecked)
-float dht11::avg(int *vals, size_t n) {
-  int sum = 0.;
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::avg(int *vals, size_t n, int *avgDec) {
+  int buf = 0.;
+  int avgInt;
   for (size_t i=0; i<n; i++) {
-    sum += vals[i];
+    buf += vals[i];
   }
-  return (float)sum/(float)n;
+  buf *= 100;
+  buf = buf/n;  // avg*100
+  avgInt = buf/100;
+  *avgDec = buf - (100*avgInt);
+  return avgInt;
 }
 
 /// Returns the averaged values of temperature from history.
 ///
-/// \return A float representing the temperature in °C, or `DHT11_INVALID` if history is empty.
-float dht11::get_weighted_temperature() {
+/// \return An int representing the temperature in °C, or `DHT11_INVALID` if history is empty.
+///
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::get_weighted_temperature(int *avgDec) {
   if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return avg(mHistTemp, mHistNelm);
+  return avg(mHistTemp, mHistNelm, avgDec);
 }
 
 /// Returns the averaged values of humidity from history.
 ///
-/// \return A float representing the humidity in %, or `DHT11_INVALID` if history is empty.
-float dht11::get_weighted_humidity() {
+/// \return An int representing the humidity in %, or `DHT11_INVALID` if history is empty.
+///
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::get_weighted_humidity(int *avgDec) {
   if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return avg(mHistHumi, mHistNelm);
+  return avg(mHistHumi, mHistNelm, avgDec);
 }
 
 /// Returns the last temperature value read.
@@ -158,8 +168,8 @@ int dht11::read() {
   mTemperature = bits[2];
 
   // Fill circular buffer for mobile average
-  mHistTemp[mHistIdx] = (float)mTemperature;
-  mHistHumi[mHistIdx] = (float)mHumidity;
+  mHistTemp[mHistIdx] = mTemperature;
+  mHistHumi[mHistIdx] = mHumidity;
 
   if (++mHistIdx == mHistSz) {
     mHistIdx = 0;

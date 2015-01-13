@@ -45,8 +45,9 @@ void setup() {
 void loop() {
 
   int ans = DHT11.read();
-  unsigned long rfbuf = 0;
-  uint8_t *rfdata = (uint8_t *)&rfbuf;
+  int avgt, avgtDec, avgh, avghDec;
+  unsigned long rfulong;
+  uint8_t *rfdata = (uint8_t *)&rfulong;
 
   switch (ans) {
 
@@ -58,30 +59,30 @@ void loop() {
       Serial.print( DHT11.get_last_humidity() );
       Serial.println("%");
 
+      avgt = DHT11.get_weighted_temperature(&avgtDec);
       Serial.print("AVG TEMP ");
-      Serial.print( DHT11.get_weighted_temperature(), 2 );
-      Serial.print("C HUMI ");
-      Serial.print( DHT11.get_weighted_humidity(), 2 );
-      Serial.println("%");
+      Serial.print(avgt);
+      Serial.print("C");
+      Serial.print(avgtDec);
 
-      // Send 24 bits. Array is actually an unsigned long (32 bits). Since Arduino is Little-Endian,
-      // this is the byte order:
-      // rfdata[4] rfdata[2] rfdata[1] rfdata[0]
+      avgh = DHT11.get_weighted_humidity(&avghDec);
+      Serial.print(" HUMI ");
+      Serial.print(avgh);
+      Serial.print("%");
+      Serial.println(avghDec);
+
+      // Prepare output array (32 bits)
       rfdata[0] = 123;
-      rfdata[1] = (uint8_t)DHT11.get_weighted_temperature();
-      rfdata[2] = (uint8_t)DHT11.get_weighted_humidity();
+      rfdata[1] = (uint8_t)avgt;
+      rfdata[2] = (uint8_t)avgtDec;
+      rfdata[3] = (uint8_t)avgh;
 
-      // Print out the values to send (for debug)
-      for (int i=0; i<3; i++) {
-        Serial.print(i);
-        Serial.print(":");
-        Serial.print(rfdata[i]);
-        Serial.print(" ");
-      }
-      Serial.println(rfbuf);
+      // Print out values to send as a 32 bit integer (remember: Arduino is Little Endian)
+      Serial.print("SENDING ");
+      Serial.println(rfulong);
 
-      // Carry out RF transmission (3 = number of bytes)
-      rfSend.send( rfdata, 3 );
+      // Carry out RF transmission (rfsize = number of bytes)
+      rfSend.send(rfdata, sizeof(rfulong));
 
     break;
 

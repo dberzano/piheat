@@ -97,15 +97,15 @@ class dht11 {
     int *mHistTemp;
     int *mHistHumi;
 
-    static float avg(int *vals, size_t n);
+    static int avg(int *vals, size_t n, int *avgDec);
 
   public:
 
     dht11(int pin, size_t histSz);
     ~dht11();
     int read();
-    float get_weighted_temperature();
-    float get_weighted_humidity();
+    int get_weighted_temperature(int *avgDec);
+    int get_weighted_humidity(int *avgDec);
     int get_last_temperature();
     int get_last_humidity();
 
