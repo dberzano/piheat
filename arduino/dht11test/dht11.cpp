@@ -9,8 +9,8 @@
 dht11::dht11(int pin, size_t histSz) :
   mPin(pin), mHistSz(histSz), mHistIdx(0), mHistNelm(0),
   mTemperature(DHT11_INVALID), mHumidity(DHT11_INVALID) {
-  mHistTemp = new float[mHistSz];
-  mHistHumi = new float[mHistSz];
+  mHistTemp = new int[mHistSz];
+  mHistHumi = new int[mHistSz];
 }
 
 /// Destructor.
@@ -19,18 +19,18 @@ dht11::~dht11() {
   delete[] mHistHumi;
 }
 
-/// Calculates the moving average.
+/// Calculates the arithmetic average of the input array.
 ///
-/// \return The moving average
+/// \return The average
 ///
-/// \param vals An array of float
+/// \param vals An array of int
 /// \param n Number of elements of the array to consider (must be > 0, unchecked)
-float dht11::mavg(float *vals, size_t n) {
-  float sum = 0.;
+float dht11::avg(int *vals, size_t n) {
+  int sum = 0.;
   for (size_t i=0; i<n; i++) {
     sum += vals[i];
   }
-  return sum/n;
+  return (float)sum/(float)n;
 }
 
 /// Returns the averaged values of temperature from history.
@@ -40,7 +40,7 @@ float dht11::get_weighted_temperature() {
   if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return mavg(mHistTemp, mHistNelm);
+  return avg(mHistTemp, mHistNelm);
 }
 
 /// Returns the averaged values of humidity from history.
@@ -50,7 +50,7 @@ float dht11::get_weighted_humidity() {
   if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return mavg(mHistHumi, mHistNelm);
+  return avg(mHistHumi, mHistNelm);
 }
 
 /// Returns the last temperature value read.

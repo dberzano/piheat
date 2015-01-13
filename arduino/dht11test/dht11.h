@@ -91,13 +91,13 @@ class dht11 {
     int mPin;
     int mHumidity;
     int mTemperature;
-    unsigned int mHistSz;
-    unsigned int mHistIdx;
-    unsigned int mHistNelm;
-    float *mHistTemp;
-    float *mHistHumi;
+    size_t mHistSz;
+    size_t mHistIdx;
+    size_t mHistNelm;
+    int *mHistTemp;
+    int *mHistHumi;
 
-    static float mavg(float *vals, unsigned int n);
+    static float avg(int *vals, size_t n);
 
   public:
 
