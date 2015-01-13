@@ -88,20 +88,20 @@ class dht11 {
 
   private:
 
-    int pin;
-    int humidity;
-    int temperature;
-    unsigned int hist_sz;
-    unsigned int hist_idx;
-    unsigned int hist_nelm;
-    float *temp_hist;
-    float *humi_hist;
+    int mPin;
+    int mHumidity;
+    int mTemperature;
+    unsigned int mHistSz;
+    unsigned int mHistIdx;
+    unsigned int mHistNelm;
+    float *mHistTemp;
+    float *mHistHumi;
 
-    float mavg(float *vals, unsigned int n);
+    static float mavg(float *vals, unsigned int n);
 
   public:
 
-    dht11(int _pin, unsigned int _hist_sz);
+    dht11(int pin, size_t histSz);
     ~dht11();
     int read();
     float get_weighted_temperature();
