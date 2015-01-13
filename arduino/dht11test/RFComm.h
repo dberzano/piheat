@@ -14,7 +14,7 @@
 /// }
 ///
 /// void loop() {
-///   const unsigned int dataSize = 4;
+///   const size_t dataSize = 4;
 ///   uint8_t data[dataSize];
 ///   /* fill data[] */
 ///   rfSend.send(data, dataSize);
@@ -62,22 +62,22 @@ class RFComm {
 
   public:
 
-    RFComm(int _dataPin, int _ledPin = -1);
+    RFComm(int pinData, int pinLed = -1);
     void setupSend();
-    void send(uint8_t *buf, unsigned int len);
-    void setProto(unsigned int _proto);
+    void send(uint8_t *buf, size_t len);
+    void setProto(unsigned int proto);
 
     static void init();
 
   private:
 
-    int dataPin;  ///< Pin attached to the RF transmitter
-    int ledPin;   ///< Pin used for the debug led (-1 if not connected)
+    int mPinData;  ///< Pin attached to the RF transmitter
+    int mPinLed;   ///< Pin used for the debug LED (-1 if not connected)
 
-    unsigned int nRepeatSend = 10;
-    unsigned int proto;
+    unsigned int mRepeatSendTimes = 10;
+    unsigned int mProto;
 
-    static proto_t symToPulses[3];
+    static proto_t sSymToPulses[3];
 
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
     
