@@ -10,7 +10,7 @@
 
 
 #include "dht11.h"
-#include "RCSwitch.h"
+#include "RFComm.h"
 
 /// Digital PIN of the Arduino connected to the DHT11
 #define PIN_DHT11 2
@@ -27,16 +27,18 @@
 dht11 DHT11(PIN_DHT11, MAVG_SIZE);
 int count = 0;
 
-RCSwitch rfSend = RCSwitch(PIN_LED);
+RFComm rfSend = RFComm(PIN_RF, PIN_LED);
 
 /// First function called of the sketck.
 void setup() {
   Serial.begin(115200);
   Serial.println("BOOTING DHT11 TEST PROGRAM");
 
-  // Setup RF pin
-  rfSend.enableTransmit(PIN_RF);
-  pinMode(PIN_LED, OUTPUT);
+  // Init static things
+  RFComm::init();
+
+  // Setup RF pin (and debug LED) for sending data
+  rfSend.setupSend();
 }
 
 /// Main loop.
@@ -78,8 +80,8 @@ void loop() {
       }
       Serial.println(rfbuf);
 
-      // Carry out RF transmission (24 = number of bits)
-      rfSend.send( rfbuf, 24 );
+      // Carry out RF transmission (3 = number of bytes)
+      rfSend.send( rfdata, 3 );
 
     break;
 
