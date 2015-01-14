@@ -55,8 +55,10 @@
 /// Symbol for sync
 #define RFCSYM_SYNC 2
 
-/// Maximum number of high/low or low/high changes to capture
-#define RFCMAXCHANGES 67
+/// Maximum number of high/low or low/high changes to capture. It must accommodate: 1 bit (long
+/// sync) + 2 * data_bits (high+low per bit) + 1 bit (short terminator, will be discarded). For 32
+/// bits, 66 changes is the minimum allowed; for 64 bits, 130
+#define RFCMAXCHANGES 130
 /// States above this length (in µs) are considered sync signals
 #define RFCMAXSYNC_US 5000
 /// Tolerance on the sync signal length measurement (in µs)
