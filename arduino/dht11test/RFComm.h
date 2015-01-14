@@ -98,11 +98,11 @@ class RFComm {
     int mPinData;  ///< Pin attached to the RF transmitter
     int mPinLed;   ///< Pin used for the debug LED (-1 if not connected)
 
-    unsigned int mRepeatSendTimes;
-    unsigned int mProto;
+    unsigned int mRepeatSendTimes;  ///< How many times a single data is sent
+    unsigned int mProto;  ///< Protocol version (`RFCPROTO_1`, etc.)
 
-    static proto_t sSymToPulses[3];
-    static unsigned int sTimings_us[RFCMAXCHANGES];
+    static proto_t sSymToPulses[3];  ///< Bit to pulse conversion for the different protocols
+    static unsigned int sTimings_us[RFCMAXCHANGES];  ///< Raw hi and lo pulse lenghts to decode
 
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
 
