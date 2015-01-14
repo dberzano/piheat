@@ -31,6 +31,7 @@
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
 #else
+#include <iostream>
 #include <wiringPi.h>
 #include <cstddef>
 #include <stdint.h>
@@ -70,6 +71,7 @@ class RFComm {
 
     RFComm(int pinData, int pinLed = -1);
     void setupSend();
+    void setupRecv();
     void send(uint8_t *buf, size_t len);
     void setProto(unsigned int proto);
 
@@ -86,7 +88,8 @@ class RFComm {
     static proto_t sSymToPulses[3];
 
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
-    
+
+    static void recvIntHandler();
 };
 
 #endif

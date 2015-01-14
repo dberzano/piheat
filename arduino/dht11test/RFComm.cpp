@@ -2,7 +2,6 @@
 
 #include "RFComm.h"
 
-
 /// Constructor.
 ///
 /// \param pinData Pin corresponding to the RF transmitter
@@ -18,6 +17,19 @@ void RFComm::setupSend() {
   }
 }
 
+/// Sets up the instance for receiving data (as opposed to sending).
+void RFComm::setupRecv() {
+  pinMode(mPinData, INPUT);
+  if (mPinLed != -1) {
+    pinMode(mPinLed, OUTPUT);
+  }
+
+  #ifdef ARDUINO
+  attachInterrupt(mPinData, recvIntHandler, CHANGE);
+  #else
+  wiringPiISR(mPinData, INT_EDGE_BOTH, &recvIntHandler);
+  #endif
+}
 
 /// Sets protocol.
 ///
@@ -25,7 +37,6 @@ void RFComm::setupSend() {
 void RFComm::setProto(unsigned int proto) {
   mProto = proto;
 }
-
 
 /// Sends data.
 ///
@@ -58,7 +69,6 @@ void RFComm::send(uint8_t *buf, size_t len) {
 
 }
 
-
 /// Sends a raw hi+lo ramp.
 ///
 /// Shape:
@@ -89,7 +99,6 @@ void RFComm::sendSymbol(symbol_t &sym, unsigned int pulseLen_us) {
 
 }
 
-
 /// Sets some initial static variables.
 ///
 /// Must be called when including this library.
@@ -110,6 +119,11 @@ void RFComm::init() {
   sSymToPulses[RFCPROTO_3].symbols[RFCSYM_1]    = {  9,  6 };
   sSymToPulses[RFCPROTO_3].symbols[RFCSYM_SYNC] = {  1, 71 };
 
+}
+
+/// Interrupt handler
+void RFComm::recvIntHandler() { 
+  std::cout << "Interrupt" << std::endl;
 }
 
 
