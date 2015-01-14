@@ -1,7 +1,6 @@
 /// \class RFComm
 
 #include "RFComm.h"
-#include "Arduino.h"
 
 
 /// Constructor.
@@ -9,7 +8,7 @@
 /// \param pinData Pin corresponding to the RF transmitter
 /// \param pinLed Pin connected to a LED for debug (-1 for nothing) 
 RFComm::RFComm(int pinData, int pinLed) : 
-  mPinData(pinData), mPinLed(pinLed), mProto(RFCPROTO_1) {}
+  mPinData(pinData), mPinLed(pinLed), mProto(RFCPROTO_1), mRepeatSendTimes(10) {}
 
 /// Sets up the instance for sending data (as opposed to receiving).
 void RFComm::setupSend() {

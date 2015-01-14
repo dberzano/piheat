@@ -28,7 +28,13 @@
 #ifndef RFComm_h
 #define RFComm_h
 
+#if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
+#else
+#include <wiringPi.h>
+#include <cstddef>
+#include <stdint.h>
+#endif
 
 /// Protocol 1
 #define RFCPROTO_1 0
@@ -74,7 +80,7 @@ class RFComm {
     int mPinData;  ///< Pin attached to the RF transmitter
     int mPinLed;   ///< Pin used for the debug LED (-1 if not connected)
 
-    unsigned int mRepeatSendTimes = 10;
+    unsigned int mRepeatSendTimes;
     unsigned int mProto;
 
     static proto_t sSymToPulses[3];
