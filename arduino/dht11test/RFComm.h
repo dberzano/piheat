@@ -30,11 +30,15 @@
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
+#define RFCPRINT(x) Serial.print(x);
+#define RFCPRINTLN(x) Serial.println(x);
 #else
 #include <iostream>
 #include <wiringPi.h>
 #include <cstddef>
 #include <stdint.h>
+#define RFCPRINT(x) std::cout << (x);
+#define RFCPRINTLN(x) std::cout << (x) << std::endl;
 #endif
 
 /// Protocol 1
@@ -50,6 +54,16 @@
 #define RFCSYM_1    1
 /// Symbol for sync
 #define RFCSYM_SYNC 2
+
+/// Maximum number of high/low or low/high changes to capture
+#define RFCMAXCHANGES 67
+/// States above this length (in µs) are considered sync signals
+#define RFCMAXSYNC_US 5000
+/// Tolerance on the sync signal length measurement (in µs)
+#define RFCSYNCTOL_US 200
+/// Number of consecutive sync signals to receive before extracting data. Larger values lead to a
+/// greater sync precision between devices, but require emitter to repeat sends more often
+#define RFCNSYNC 3
 
 /// A symbol: a sequence of variable length high and low signals.
 ///
@@ -86,6 +100,7 @@ class RFComm {
     unsigned int mProto;
 
     static proto_t sSymToPulses[3];
+    static unsigned int sTimings_us[RFCMAXCHANGES];
 
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
 

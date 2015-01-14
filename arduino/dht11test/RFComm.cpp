@@ -121,10 +121,51 @@ void RFComm::init() {
 
 }
 
-/// Interrupt handler
+/// Interrupt handler. Remember: this is a static function!
 void RFComm::recvIntHandler() { 
-  std::cout << "Interrupt" << std::endl;
+
+  static unsigned int duration_us;
+  static unsigned int countChanges;
+  static unsigned long lastTime_us;
+  static unsigned int countSyncSignals;
+
+  long time_us = micros();
+  duration_us = time_us - lastTime_us;
+
+  if (duration_us > RFCMAXSYNC_US) {
+
+    if (duration_us > sTimings_us[0] - RFCSYNCTOL_US && 
+        duration_us < sTimings_us[0] + RFCSYNCTOL_US) {
+
+      // This signal is long and it is similar in length to the first signal: consider it a sync
+
+      if (++countSyncSignals == RFCNSYNC) {
+        countChanges--;
+
+        RFCPRINT( RFCNSYNC );
+        RFCPRINT( " sync signals and " );
+        RFCPRINT( countChanges );
+        RFCPRINT( " changes seen\n" );
+
+        // decode data here //
+
+        countSyncSignals = 0;
+      }
+
+    }
+
+    // Reset: start collecting data from scratch at next interrupt
+    countChanges = 0;
+  }
+  else if (countChanges >= RFCMAXCHANGES) {
+    // Too much data, maybe just garbage? Start over
+    countChanges = 0;
+    countSyncSignals = 0;
+  }
+
+  sTimings_us[countChanges++] = duration_us;
+  lastTime_us = time_us;
 }
 
-
+unsigned int RFComm::sTimings_us[RFCMAXCHANGES];
 proto_t RFComm::sSymToPulses[3] = {};
