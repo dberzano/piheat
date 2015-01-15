@@ -215,8 +215,13 @@ void RFComm::recvIntHandler() {
       if (++countSyncSignals == RFCNSYNC) {
         countChanges--;  // skip the short "hi" before this long "lo"
 
-        // decode data here //
-        decodeProto(countChanges, &sSymToPulses[RFCPROTO_1]);
+        if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_1]) ) {
+          if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_2]) ) {
+            if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_3]) ) {
+              // No suitable protocol found
+            }
+          }
+        }
 
         countSyncSignals = 0;
       }
