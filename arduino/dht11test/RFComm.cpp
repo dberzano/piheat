@@ -122,6 +122,19 @@ void RFComm::init() {
 
 }
 
+/// Gets received data. Pointer to data destination must be provided. Subsequent
+/// calls will return zero until fresh data is available.
+///
+/// \param buf Function will store there a pointer to data
+///
+/// \return Number of available bytes
+size_t RFComm::recv(const uint8_t **buf) {
+  *buf = sRecvData;
+  size_t bufLen = sRecvDataLen;
+  sRecvDataLen = 0;  // reset read!
+  return bufLen;
+}
+
 /// Check if a value is within a symmetric range centered somewhere.
 ///
 /// \param value Value to check

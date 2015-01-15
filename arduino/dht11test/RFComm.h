@@ -95,6 +95,7 @@ class RFComm {
     void setupRecv();
     void send(uint8_t *buf, size_t len);
     void setProto(unsigned int proto);
+    size_t recv(const uint8_t **buf);
 
     static void init();
 
