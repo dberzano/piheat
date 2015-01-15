@@ -39,6 +39,7 @@ void setup() {
 
   // Setup RF pin (and debug LED) for sending data
   rfSend.setupSend();
+  rfSend.setProto(RFCPROTO_2);
 }
 
 /// Main loop.

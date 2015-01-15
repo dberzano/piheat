@@ -22,12 +22,13 @@ int main(int argc, char *argv[]) {
   rfRecv.setupRecv();
 
   const uint8_t *buf;
+  const proto_t *proto;
   size_t len;
 
   while (true) {
-    if (len = rfRecv.recv(&buf)) {
-
-      printf("recv %lu bytes>", len);
+    if ( (len = rfRecv.recv(&buf, &proto)) ) {
+      uint8_t synclen = proto->symbols[RFCSYM_SYNC].lo;
+      printf("recv %u bytes - sync len %u>", len, synclen);
       for (size_t i=0; i<len; i++) {
         printf(" %3u", buf[i]);
       }

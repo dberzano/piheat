@@ -128,10 +128,13 @@ void RFComm::init() {
 /// \param buf Function will store there a pointer to data
 ///
 /// \return Number of available bytes
-size_t RFComm::recv(const uint8_t **buf) {
+size_t RFComm::recv(const uint8_t **buf, const proto_t **proto) {
   *buf = sRecvData;
   size_t bufLen = sRecvDataLen;
   sRecvDataLen = 0;  // reset read!
+  if (proto != NULL) {
+    *proto = (const proto_t *)sRecvProto;
+  }
   return bufLen;
 }
 
@@ -204,6 +207,7 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   // All OK: transfer data to the static buffers
   memcpy(sRecvData, bufRecv, countBufRecv);
   sRecvDataLen = countBufRecv;
+  sRecvProto = proto;
   return true;
 }
 
@@ -256,5 +260,6 @@ void RFComm::recvIntHandler() {
 
 uint8_t RFComm::sRecvData[RFCMAXBYTES] = {};
 size_t RFComm::sRecvDataLen = 0;
+proto_t *RFComm::sRecvProto = NULL;
 proto_t RFComm::sSymToPulses[3] = {};
 unsigned int RFComm::sTimings_us[RFCMAXCHANGES];

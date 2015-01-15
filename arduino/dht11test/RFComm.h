@@ -95,7 +95,7 @@ class RFComm {
     void setupRecv();
     void send(uint8_t *buf, size_t len);
     void setProto(unsigned int proto);
-    size_t recv(const uint8_t **buf);
+    size_t recv(const uint8_t **buf, const proto_t **proto = NULL);
 
     static void init();
 
@@ -109,6 +109,7 @@ class RFComm {
 
     static uint8_t sRecvData[RFCMAXBYTES];  ///< Buffer of bytes for received data
     static size_t sRecvDataLen;  ///< Length, in bytes, of received data
+    static proto_t *sRecvProto;  ///< Protocol used to receive latest data
     static proto_t sSymToPulses[3];  ///< Bit to pulse conversion for the different protocols
     static unsigned int sTimings_us[RFCMAXCHANGES];  ///< Raw hi and lo pulse lenghts to decode
 
