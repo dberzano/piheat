@@ -10,7 +10,10 @@ RFComm::RFComm(int pinData, int pinLed) :
   mPinData(pinData), mPinLed(pinLed), mRepeatSendTimes(10), mProto(RFCPROTO_1) {}
 
 /// Sets up the instance for sending data (as opposed to receiving).
-void RFComm::setupSend() {
+///
+/// \param proto Protocol, may be RFCPROTO_1, RFCPROTO_2 or RFCPROTO_3
+void RFComm::setupSend(unsigned int proto) {
+  mProto = proto;
   pinMode(mPinData, OUTPUT);
   if (mPinLed != -1) {
     pinMode(mPinLed, OUTPUT);
@@ -23,19 +26,11 @@ void RFComm::setupRecv() {
   if (mPinLed != -1) {
     pinMode(mPinLed, OUTPUT);
   }
-
   #ifdef ARDUINO
   attachInterrupt(mPinData, recvIntHandler, CHANGE);
   #else
   wiringPiISR(mPinData, INT_EDGE_BOTH, &recvIntHandler);
   #endif
-}
-
-/// Sets protocol.
-///
-/// \param proto Protocol, may be RFCPROTO_1, RFCPROTO_2 or RFCPROTO_3
-void RFComm::setProto(unsigned int proto) {
-  mProto = proto;
 }
 
 /// Sends data.

@@ -29,7 +29,7 @@ int count = 0;
 
 RFComm rfSend = RFComm(PIN_RF, PIN_LED);
 
-/// First function called of the sketck.
+/// First function called of the sketch.
 void setup() {
   Serial.begin(115200);
   Serial.println("BOOTING DHT11 TEST PROGRAM");
@@ -37,9 +37,8 @@ void setup() {
   // Init static things
   RFComm::init();
 
-  // Setup RF pin (and debug LED) for sending data
-  rfSend.setupSend();
-  rfSend.setProto(RFCPROTO_2);
+  // Setup instance for sending, and using protocol
+  rfSend.setupSend(RFCPROTO_2);
 }
 
 /// Main loop.
