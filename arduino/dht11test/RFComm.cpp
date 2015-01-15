@@ -146,7 +146,6 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   unsigned long sym0hi_us = refLen_us * proto->symbols[RFCSYM_0].hi;
   unsigned long sym0lo_us = refLen_us * proto->symbols[RFCSYM_0].lo;
 
-  unsigned long bit;  // todo: will disappear
   static uint8_t bufRecv[RFCMAXBYTES];
   size_t countBufRecv = 1;
 
@@ -160,13 +159,11 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
     if ( isInRange(sTimings_us[idxRecv], sym1hi_us, refLenTol_us) &&
          isInRange(sTimings_us[idxRecv+1], sym1lo_us, refLenTol_us) )
     {
-      bit = 1;
       *curByte = (*curByte << 1) + 1;
     }
     else if ( isInRange(sTimings_us[idxRecv], sym0hi_us, refLenTol_us) &&
               isInRange(sTimings_us[idxRecv+1], sym0lo_us, refLenTol_us) )
     {
-      bit = 0;
       *curByte = *curByte << 1;
     }
     else {
@@ -175,9 +172,7 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
       break;
     }
 
-    RFCPRINT(bit);
     if ((idxRecv+1) % 16 == 0) {
-      RFCPRINT(" ");
       curByte = &bufRecv[countBufRecv++];
       *curByte = 0;
     }
@@ -185,8 +180,7 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   }
 
   if (idxRecv < 15) {
-    // Ignore strings < 1 byte
-    RFCPRINTLN(idxRecv);
+    // Ignore strings < 1 byte (noise)
     sRecvDataLen = 0;
     return false;
   }
@@ -194,21 +188,9 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   // Adjust buffer count (value is in bytes)
   countBufRecv = (idxRecv+14)/16;
 
-  RFCPRINT(">> idxRecv=");
-  RFCPRINT( idxRecv );
-  RFCPRINT(" >> len=");
-  RFCPRINT( countBufRecv );
-  RFCPRINT(" >>");
-  for (size_t i=0; i<countBufRecv; i++) {
-    RFCPRINT(" ");
-    RFCPRINT( (unsigned int)bufRecv[i] );
-  }
-  RFCPRINTLN("");
-
-  // Transfer data to the static buffers
+  // All OK: transfer data to the static buffers
   memcpy(sRecvData, bufRecv, countBufRecv);
   sRecvDataLen = countBufRecv;
-
   return true;
 }
 
@@ -233,11 +215,6 @@ void RFComm::recvIntHandler() {
       if (++countSyncSignals == RFCNSYNC) {
         countChanges--;  // skip the short "hi" before this long "lo"
 
-        RFCPRINT( RFCNSYNC );
-        RFCPRINT( " sync signals and " );
-        RFCPRINT( countChanges );
-        RFCPRINT( " changes seen\n" );
-
         // decode data here //
         decodeProto(countChanges, &sSymToPulses[RFCPROTO_1]);
 
@@ -251,7 +228,6 @@ void RFComm::recvIntHandler() {
   }
   else if (countChanges >= RFCMAXCHANGES) {
     // Too much data, maybe just garbage? Start over
-    RFCPRINTLN( "attempting to sync: too much data, starting over!" );
     countChanges = 0;
     countSyncSignals = 0;
   }
