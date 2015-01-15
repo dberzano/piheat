@@ -7,7 +7,7 @@
 /// \param pinData Pin corresponding to the RF transmitter
 /// \param pinLed Pin connected to a LED for debug (-1 for nothing) 
 RFComm::RFComm(int pinData, int pinLed) : 
-  mPinData(pinData), mPinLed(pinLed), mProto(RFCPROTO_1), mRepeatSendTimes(10) {}
+  mPinData(pinData), mPinLed(pinLed), mRepeatSendTimes(10), mProto(RFCPROTO_1) {}
 
 /// Sets up the instance for sending data (as opposed to receiving).
 void RFComm::setupSend() {
@@ -165,7 +165,7 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   static uint8_t bufRecv[RFCMAXBYTES];
   size_t countBufRecv = 1;
 
-  int idxRecv;
+  size_t idxRecv;
 
   uint8_t *curByte = bufRecv;
   *curByte = 0;
@@ -184,7 +184,12 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
     }
     else {
       // Cannot continue decoding: keep what we have obtained so far
-      idxRecv -= 2;
+      if (idxRecv >= 2) {
+        idxRecv -= 2;
+      }
+      else {
+        idxRecv = 0;
+      }
       break;
     }
 
