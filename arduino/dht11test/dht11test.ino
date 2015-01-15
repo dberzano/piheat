@@ -46,8 +46,7 @@ void loop() {
 
   int ans = DHT11.read();
   int avgt, avgtDec, avgh, avghDec;
-  unsigned long rfulong;
-  uint8_t *rfdata = (uint8_t *)&rfulong;
+  uint8_t rfdata[8];
 
   switch (ans) {
 
@@ -72,17 +71,25 @@ void loop() {
       Serial.println(avghDec);
 
       // Prepare output array (32 bits)
-      rfdata[0] = 123;
-      rfdata[1] = (uint8_t)avgt;
-      rfdata[2] = (uint8_t)avgtDec;
-      rfdata[3] = (uint8_t)avgh;
+      rfdata[0] = 123;  // uuid
+      rfdata[1] = 231;  // uuid
+      rfdata[2] = (uint8_t)avgt;
+      rfdata[3] = (uint8_t)avgtDec;
+      rfdata[4] = (uint8_t)avgh;
+      rfdata[5] = (uint8_t)avghDec;
+      rfdata[6] = (uint8_t)( avgt + avgh );  // checksum
+      rfdata[7] = (uint8_t)( avgtDec + avghDec );  // checksum
 
-      // Print out values to send as a 32 bit integer (remember: Arduino is Little Endian)
-      Serial.print("SENDING ");
-      Serial.println(rfulong);
+      // Print out values to send (note: Arduino uses Little Endianness)
+      Serial.print("SENDING");
+      for (int i=0; i<8; i++) {
+        Serial.print(" ");
+        Serial.print(rfdata[i]);
+      }
+      Serial.println("");
 
       // Carry out RF transmission (rfsize = number of bytes)
-      rfSend.send(rfdata, sizeof(rfulong));
+      rfSend.send(rfdata, 8);
 
     break;
 
