@@ -121,6 +121,7 @@ void RFComm::init() {
 /// calls will return zero until fresh data is available.
 ///
 /// \param buf Function will store there a pointer to data
+/// \param proto A protocol struct is returned there
 ///
 /// \return Number of available bytes
 size_t RFComm::recv(const uint8_t **buf, const proto_t **proto) {

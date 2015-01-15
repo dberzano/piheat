@@ -1,10 +1,10 @@
 /// \class RFComm
-/// \brief RF transmission for Arduino
+/// \brief RF send/receive for Arduino and Raspberry Pi
 ///
-/// How to use it:
+/// How to use it for sending on Arduino:
 ///
 /// ~~~{.cpp}
-/// #include "RCSwitch.h"
+/// #include "RFComm.h"
 ///
 /// RFComm rfSend(4 /* pin rf */, 13 /* pin led */);
 ///
@@ -18,6 +18,38 @@
 ///   uint8_t data[dataSize];
 ///   /* fill data[] */
 ///   rfSend.send(data, dataSize);
+/// }
+/// ~~~
+///
+/// How to use it for receiving on a Raspberry Pi (**note:** requires
+/// [wiringPi](http://wiringpi.com/) to work, and
+/// [see here](See https://projects.drogon.net/raspberry-pi/wiringpi/pins/) for
+/// PIN assignment):
+///
+/// ~~~{.cpp}
+/// #include "RFComm.h"
+///
+/// int main(int argc, char *argv[]) {
+/// 
+///   wiringPiSetup();
+///   RFComm::init();
+///   RFComm rfRecv(2 /* pin rf */);
+///   rfRecv.setupRecv();
+/// 
+///   const uint8_t *buf;
+///   size_t len;
+/// 
+///   while (true) {
+///     if ( (len = rfRecv.recv(&buf, &proto)) ) {
+///       printf("%u bytes:", len);
+///       for (size_t i=0; i<len; i++) {
+///         printf(" %3u", buf[i]);
+///       }
+///       puts("");
+///     }
+///   }
+/// 
+///   return 0;
 /// }
 /// ~~~
 ///

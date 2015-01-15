@@ -1,7 +1,14 @@
 #ifndef ARDUINO
 
-/// Hacked from http://code.google.com/p/rc-switch/
-/// by @justy to provide a handy RF code sniffer
+/// \file rfSnifferPi.cpp
+/// \brief Test executable for the RFComm class
+///
+/// Inspired by:
+///
+/// * http://code.google.com/p/rc-switch
+/// * https://github.com/ninjablocks/433Utils
+///
+/// \author Dario Berzano
 
 #include <iostream>
 #include "RFComm.h"

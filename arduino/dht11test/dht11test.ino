@@ -1,5 +1,5 @@
 /// \file dht11test.ino
-/// \brief DHT11 sample program for Arduino
+/// \brief Sample Arduino Sketch for the dht11 and RFComm classes
 ///
 /// Reads data from a DHT11 sensor and outputs it on the serial console. Outputs instant data every
 /// second, plus a "moving average" of the last `MAVG_SIZE` values.
