@@ -99,9 +99,10 @@ void RFComm::sendSymbol(symbol_t &sym, unsigned int pulseLen_us) {
 
 }
 
-/// Sets some initial static variables.
+/// Sets some initial static variables. Pulse lengths are used when sending, but
+/// they are automatically detected when receiving.
 ///
-/// Must be called when including this library.
+/// This function **must** be called before starting using this library.
 void RFComm::init() {
 
   sSymToPulses[RFCPROTO_1].pulseLength_us = 350;
@@ -119,6 +120,96 @@ void RFComm::init() {
   sSymToPulses[RFCPROTO_3].symbols[RFCSYM_1]    = {  9,  6 };
   sSymToPulses[RFCPROTO_3].symbols[RFCSYM_SYNC] = {  1, 71 };
 
+}
+
+/// Check if a value is within a symmetric range centered somewhere.
+///
+/// \param value Value to check
+/// \param center Center value
+/// \param sigma Maximum positive or negative distance from center tolerated
+///
+/// \return true if value is within range, false otherwise
+bool RFComm::isInRange(unsigned long value, unsigned long center, unsigned long sigma) {
+  return ( value > center-sigma && value < center+sigma );
+}
+
+/// Tries to decode a bit string using the given protocol.
+///
+/// \return true on success, false on failure
+bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
+
+  unsigned long refLen_us = sTimings_us[0] / proto->symbols[RFCSYM_SYNC].lo;
+  unsigned long refLenTol_us = refLen_us * RFCPULSETOL_PCT / 100;
+
+  unsigned long sym1hi_us = refLen_us * proto->symbols[RFCSYM_1].hi;
+  unsigned long sym1lo_us = refLen_us * proto->symbols[RFCSYM_1].lo;
+  unsigned long sym0hi_us = refLen_us * proto->symbols[RFCSYM_0].hi;
+  unsigned long sym0lo_us = refLen_us * proto->symbols[RFCSYM_0].lo;
+
+  unsigned long bit;  // todo: will disappear
+  static uint8_t bufRecv[RFCMAXBYTES];
+  size_t countBufRecv = 1;
+
+  int idxRecv;
+
+  uint8_t *curByte = bufRecv;
+  *curByte = 0;
+
+  for (idxRecv=1; idxRecv<numChanges; idxRecv+=2) {
+
+    if ( isInRange(sTimings_us[idxRecv], sym1hi_us, refLenTol_us) &&
+         isInRange(sTimings_us[idxRecv+1], sym1lo_us, refLenTol_us) )
+    {
+      bit = 1;
+      *curByte = (*curByte << 1) + 1;
+    }
+    else if ( isInRange(sTimings_us[idxRecv], sym0hi_us, refLenTol_us) &&
+              isInRange(sTimings_us[idxRecv+1], sym0lo_us, refLenTol_us) )
+    {
+      bit = 0;
+      *curByte = *curByte << 1;
+    }
+    else {
+      // Cannot continue decoding: keep what we have obtained so far
+      idxRecv -= 2;
+      break;
+    }
+
+    RFCPRINT(bit);
+    if ((idxRecv+1) % 16 == 0) {
+      RFCPRINT(" ");
+      curByte = &bufRecv[countBufRecv++];
+      *curByte = 0;
+    }
+
+  }
+
+  if (idxRecv < 15) {
+    // Ignore strings < 1 byte
+    RFCPRINTLN(idxRecv);
+    sRecvDataLen = 0;
+    return false;
+  }
+
+  // Adjust buffer count (value is in bytes)
+  countBufRecv = (idxRecv+14)/16;
+
+  RFCPRINT(">> idxRecv=");
+  RFCPRINT( idxRecv );
+  RFCPRINT(" >> len=");
+  RFCPRINT( countBufRecv );
+  RFCPRINT(" >>");
+  for (size_t i=0; i<countBufRecv; i++) {
+    RFCPRINT(" ");
+    RFCPRINT( (unsigned int)bufRecv[i] );
+  }
+  RFCPRINTLN("");
+
+  // Transfer data to the static buffers
+  memcpy(sRecvData, bufRecv, countBufRecv);
+  sRecvDataLen = countBufRecv;
+
+  return true;
 }
 
 /// Interrupt handler. Remember: this is a static function!
@@ -140,7 +231,7 @@ void RFComm::recvIntHandler() {
       // This signal is long and it is similar in length to the first signal: consider it a sync
 
       if (++countSyncSignals == RFCNSYNC) {
-        countChanges--;
+        countChanges--;  // skip the short "hi" before this long "lo"
 
         RFCPRINT( RFCNSYNC );
         RFCPRINT( " sync signals and " );
@@ -148,6 +239,7 @@ void RFComm::recvIntHandler() {
         RFCPRINT( " changes seen\n" );
 
         // decode data here //
+        decodeProto(countChanges, &sSymToPulses[RFCPROTO_1]);
 
         countSyncSignals = 0;
       }
@@ -159,6 +251,7 @@ void RFComm::recvIntHandler() {
   }
   else if (countChanges >= RFCMAXCHANGES) {
     // Too much data, maybe just garbage? Start over
+    RFCPRINTLN( "attempting to sync: too much data, starting over!" );
     countChanges = 0;
     countSyncSignals = 0;
   }
@@ -167,5 +260,7 @@ void RFComm::recvIntHandler() {
   lastTime_us = time_us;
 }
 
-unsigned int RFComm::sTimings_us[RFCMAXCHANGES];
+uint8_t RFComm::sRecvData[RFCMAXBYTES] = {};
+size_t RFComm::sRecvDataLen = 0;
 proto_t RFComm::sSymToPulses[3] = {};
+unsigned int RFComm::sTimings_us[RFCMAXCHANGES];

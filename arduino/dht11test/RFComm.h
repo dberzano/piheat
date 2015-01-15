@@ -36,7 +36,8 @@
 #include <iostream>
 #include <wiringPi.h>
 #include <cstddef>
-#include <stdint.h>
+#include <cstdint>
+#include <cstring>
 #define RFCPRINT(x) std::cout << (x);
 #define RFCPRINTLN(x) std::cout << (x) << std::endl;
 #endif
@@ -55,17 +56,21 @@
 /// Symbol for sync
 #define RFCSYM_SYNC 2
 
+/// Maximum string length supported when receiving, in bytes
+#define RFCMAXBYTES 8
 /// Maximum number of high/low or low/high changes to capture. It must accommodate: 1 bit (long
 /// sync) + 2 * data_bits (high+low per bit) + 1 bit (short terminator, will be discarded). For 32
 /// bits, 66 changes is the minimum allowed; for 64 bits, 130
-#define RFCMAXCHANGES 130
+#define RFCMAXCHANGES ( (RFCMAXBYTES)*8*2+1+1 )
 /// States above this length (in µs) are considered sync signals
 #define RFCMAXSYNC_US 5000
 /// Tolerance on the sync signal length measurement (in µs)
 #define RFCSYNCTOL_US 200
 /// Number of consecutive sync signals to receive before extracting data. Larger values lead to a
 /// greater sync precision between devices, but require emitter to repeat sends more often
-#define RFCNSYNC 3
+#define RFCNSYNC 2
+/// Pulse length tolerance, in percentage
+#define RFCPULSETOL_PCT 50
 
 /// A symbol: a sequence of variable length high and low signals.
 ///
@@ -101,12 +106,17 @@ class RFComm {
     unsigned int mRepeatSendTimes;  ///< How many times a single data is sent
     unsigned int mProto;  ///< Protocol version (`RFCPROTO_1`, etc.)
 
+    static uint8_t sRecvData[RFCMAXBYTES];  ///< Buffer of bytes for received data
+    static size_t sRecvDataLen;  ///< Length, in bytes, of received data
     static proto_t sSymToPulses[3];  ///< Bit to pulse conversion for the different protocols
     static unsigned int sTimings_us[RFCMAXCHANGES];  ///< Raw hi and lo pulse lenghts to decode
+
+    inline static bool isInRange(unsigned long value, unsigned long center, unsigned long sigma);
 
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
 
     static void recvIntHandler();
+    static bool decodeProto(unsigned int numChanges, proto_t *proto);
 };
 
 #endif
