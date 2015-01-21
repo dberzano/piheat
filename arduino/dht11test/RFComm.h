@@ -123,7 +123,7 @@ class RFComm {
   public:
 
     RFComm(int pinData, int pinLed = -1);
-    void setupSend(unsigned int proto = RFCPROTO_1);
+    void setupSend(unsigned int proto = RFCPROTO_1, unsigned int repeat = 10);
     void setupRecv();
     void send(uint8_t *buf, size_t len);
     size_t recv(const uint8_t **buf, const proto_t **proto = NULL);

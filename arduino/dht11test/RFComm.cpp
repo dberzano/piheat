@@ -12,8 +12,10 @@ RFComm::RFComm(int pinData, int pinLed) :
 /// Sets up the instance for sending data (as opposed to receiving).
 ///
 /// \param proto Protocol, may be RFCPROTO_1, RFCPROTO_2 or RFCPROTO_3
-void RFComm::setupSend(unsigned int proto) {
+/// \param repeat How many times should the signal be sent per burst
+void RFComm::setupSend(unsigned int proto, unsigned int repeat) {
   mProto = proto;
+  mRepeatSendTimes = repeat;
   pinMode(mPinData, OUTPUT);
   if (mPinLed != -1) {
     pinMode(mPinLed, OUTPUT);
