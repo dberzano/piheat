@@ -7,13 +7,13 @@
 /// \param pinData Pin corresponding to the RF transmitter
 /// \param pinLed Pin connected to a LED for debug (-1 for nothing) 
 RFComm::RFComm(int pinData, int pinLed) : 
-  mPinData(pinData), mPinLed(pinLed), mRepeatSendTimes(10), mProto(RFCPROTO_1) {}
+  mPinData(pinData), mPinLed(pinLed), mRepeatSendTimes(10), mProto(rfProtoV1) {}
 
 /// Sets up the instance for sending data (as opposed to receiving).
 ///
-/// \param proto Protocol, may be RFCPROTO_1, RFCPROTO_2 or RFCPROTO_3
+/// \param proto Protocol version
 /// \param repeat How many times should the signal be sent per burst
-void RFComm::setupSend(unsigned int proto, unsigned int repeat) {
+void RFComm::setupSend(protoid_t proto, unsigned int repeat) {
   mProto = proto;
   mRepeatSendTimes = repeat;
   pinMode(mPinData, OUTPUT);
@@ -52,16 +52,16 @@ void RFComm::send(uint8_t *buf, size_t len) {
       for (uint8_t j=0; j<8; j++) {
 
         if ( x & mask ) {
-          sendSymbol( sSymToPulses[mProto].symbols[RFCSYM_1], sSymToPulses[mProto].pulseLength_us );
+          sendSymbol( sSymToPulses[mProto].symbols[rfSym1], sSymToPulses[mProto].pulseLength_us );
         }
         else {
-          sendSymbol( sSymToPulses[mProto].symbols[RFCSYM_0], sSymToPulses[mProto].pulseLength_us );
+          sendSymbol( sSymToPulses[mProto].symbols[rfSym0], sSymToPulses[mProto].pulseLength_us );
         }
         x = x << 1;
 
       }
     }
-    sendSymbol( sSymToPulses[mProto].symbols[RFCSYM_SYNC], sSymToPulses[mProto].pulseLength_us );
+    sendSymbol( sSymToPulses[mProto].symbols[rfSymSync], sSymToPulses[mProto].pulseLength_us );
   }
 
 }
@@ -102,20 +102,20 @@ void RFComm::sendSymbol(symbol_t &sym, unsigned int pulseLen_us) {
 /// This function **must** be called before starting using this library.
 void RFComm::init() {
 
-  sSymToPulses[RFCPROTO_1].pulseLength_us = 350;
-  sSymToPulses[RFCPROTO_1].symbols[RFCSYM_0]    = {  1,  3 };
-  sSymToPulses[RFCPROTO_1].symbols[RFCSYM_1]    = {  3,  1 };
-  sSymToPulses[RFCPROTO_1].symbols[RFCSYM_SYNC] = {  1, 31 };
+  sSymToPulses[rfProtoV1].pulseLength_us = 350;
+  sSymToPulses[rfProtoV1].symbols[rfSym0]    = {  1,  3 };
+  sSymToPulses[rfProtoV1].symbols[rfSym1]    = {  3,  1 };
+  sSymToPulses[rfProtoV1].symbols[rfSymSync] = {  1, 31 };
 
-  sSymToPulses[RFCPROTO_2].pulseLength_us = 650;
-  sSymToPulses[RFCPROTO_2].symbols[RFCSYM_0]    = {  1,  2 };
-  sSymToPulses[RFCPROTO_2].symbols[RFCSYM_1]    = {  2,  1 };
-  sSymToPulses[RFCPROTO_2].symbols[RFCSYM_SYNC] = {  1, 10 };
+  sSymToPulses[rfProtoV2].pulseLength_us = 650;
+  sSymToPulses[rfProtoV2].symbols[rfSym0]    = {  1,  2 };
+  sSymToPulses[rfProtoV2].symbols[rfSym1]    = {  2,  1 };
+  sSymToPulses[rfProtoV2].symbols[rfSymSync] = {  1, 10 };
 
-  sSymToPulses[RFCPROTO_3].pulseLength_us = 100;
-  sSymToPulses[RFCPROTO_3].symbols[RFCSYM_0]    = {  4, 11 };
-  sSymToPulses[RFCPROTO_3].symbols[RFCSYM_1]    = {  9,  6 };
-  sSymToPulses[RFCPROTO_3].symbols[RFCSYM_SYNC] = {  1, 71 };
+  sSymToPulses[rfProtoV3].pulseLength_us = 100;
+  sSymToPulses[rfProtoV3].symbols[rfSym0]    = {  4, 11 };
+  sSymToPulses[rfProtoV3].symbols[rfSym1]    = {  9,  6 };
+  sSymToPulses[rfProtoV3].symbols[rfSymSync] = {  1, 71 };
 
 }
 
@@ -126,12 +126,12 @@ void RFComm::init() {
 /// \param proto A protocol struct is returned there
 ///
 /// \return Number of available bytes
-size_t RFComm::recv(const uint8_t **buf, const proto_t **proto) {
+size_t RFComm::recv(const uint8_t **buf, protoid_t *protoid) {
   *buf = sRecvData;
   size_t bufLen = sRecvDataLen;
   sRecvDataLen = 0;  // reset read!
-  if (proto != NULL) {
-    *proto = (const proto_t *)sRecvProto;
+  if (protoid != NULL) {
+    *protoid = sRecvProto;
   }
   return bufLen;
 }
@@ -150,15 +150,17 @@ bool RFComm::isInRange(unsigned long value, unsigned long center, unsigned long 
 /// Tries to decode a bit string using the given protocol.
 ///
 /// \return true on success, false on failure
-bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
+bool RFComm::decodeProto(unsigned int numChanges, protoid_t protoid) {
 
-  unsigned long refLen_us = sTimings_us[0] / proto->symbols[RFCSYM_SYNC].lo;
+  proto_t *proto = &sSymToPulses[protoid];
+
+  unsigned long refLen_us = sTimings_us[0] / proto->symbols[rfSymSync].lo;
   unsigned long refLenTol_us = refLen_us * RFCPULSETOL_PCT / 100;
 
-  unsigned long sym1hi_us = refLen_us * proto->symbols[RFCSYM_1].hi;
-  unsigned long sym1lo_us = refLen_us * proto->symbols[RFCSYM_1].lo;
-  unsigned long sym0hi_us = refLen_us * proto->symbols[RFCSYM_0].hi;
-  unsigned long sym0lo_us = refLen_us * proto->symbols[RFCSYM_0].lo;
+  unsigned long sym1hi_us = refLen_us * proto->symbols[rfSym1].hi;
+  unsigned long sym1lo_us = refLen_us * proto->symbols[rfSym1].lo;
+  unsigned long sym0hi_us = refLen_us * proto->symbols[rfSym0].hi;
+  unsigned long sym0lo_us = refLen_us * proto->symbols[rfSym0].lo;
 
   static uint8_t bufRecv[RFCMAXBYTES];
   size_t countBufRecv = 1;
@@ -210,7 +212,7 @@ bool RFComm::decodeProto(unsigned int numChanges, proto_t *proto) {
   // All OK: transfer data to the static buffers
   memcpy(sRecvData, bufRecv, countBufRecv);
   sRecvDataLen = countBufRecv;
-  sRecvProto = proto;
+  sRecvProto = protoid;
   return true;
 }
 
@@ -235,9 +237,9 @@ void RFComm::recvIntHandler() {
       if (++countSyncSignals == RFCNSYNC) {
         countChanges--;  // skip the short "hi" before this long "lo"
 
-        if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_1]) ) {
-          if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_2]) ) {
-            if ( !decodeProto(countChanges, &sSymToPulses[RFCPROTO_3]) ) {
+        if ( !decodeProto(countChanges, rfProtoV1) ) {
+          if ( !decodeProto(countChanges, rfProtoV2) ) {
+            if ( !decodeProto(countChanges, rfProtoV3) ) {
               // No suitable protocol found
             }
           }
@@ -263,6 +265,6 @@ void RFComm::recvIntHandler() {
 
 uint8_t RFComm::sRecvData[RFCMAXBYTES] = {};
 size_t RFComm::sRecvDataLen = 0;
-proto_t *RFComm::sRecvProto = NULL;
+protoid_t RFComm::sRecvProto = rfProtoV1;
 proto_t RFComm::sSymToPulses[3] = {};
 unsigned int RFComm::sTimings_us[RFCMAXCHANGES];

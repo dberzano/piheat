@@ -38,7 +38,7 @@ void setup() {
   RFComm::init();
 
   // Setup instance for sending, and using protocol
-  rfSend.setupSend(RFCPROTO_1, 20);
+  rfSend.setupSend(rfProtoV1, 20);
 }
 
 /// Main loop.

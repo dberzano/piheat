@@ -56,7 +56,6 @@
 /// Source of inspiration [is here](http://code.google.com/p/rc-switch/).
 ///
 /// \todo Callback function when message is ready
-/// \todo Use enums
 ///
 /// \author Dario Berzano
 
@@ -76,20 +75,6 @@
 #define RFCPRINT(x) std::cout << (x);
 #define RFCPRINTLN(x) std::cout << (x) << std::endl;
 #endif
-
-/// Protocol 1
-#define RFCPROTO_1 0
-/// Protocol 2
-#define RFCPROTO_2 1
-/// Protocol 3
-#define RFCPROTO_3 2
-
-/// Symbol for bit 0
-#define RFCSYM_0    0
-/// Symbol for bit 1
-#define RFCSYM_1    1
-/// Symbol for sync
-#define RFCSYM_SYNC 2
 
 /// Maximum string length supported when receiving, in bytes
 #define RFCMAXBYTES 8
@@ -121,15 +106,29 @@ typedef struct {
   symbol_t symbols[3];          ///< Symbol shapes
 } proto_t;
 
+/// Protocol version
+enum protoid_t {
+  rfProtoV1 = 0,  ///< Protocol version 1
+  rfProtoV2 = 1,  ///< Protocol version 2
+  rfProtoV3 = 2   ///< Protocol version 3
+};
+
+/// Symbol
+enum rfsym_t {
+  rfSym0 = 0,  ///< Symbol for bit 0
+  rfSym1 = 1,  ///< Symbol for bit 1
+  rfSymSync = 2,  ///< Symbol for sync
+};
+
 class RFComm {
 
   public:
 
     RFComm(int pinData, int pinLed = -1);
-    void setupSend(unsigned int proto = RFCPROTO_1, unsigned int repeat = 10);
+    void setupSend(protoid_t proto = rfProtoV1, unsigned int repeat = 10);
     void setupRecv();
     void send(uint8_t *buf, size_t len);
-    size_t recv(const uint8_t **buf, const proto_t **proto = NULL);
+    size_t recv(const uint8_t **buf, protoid_t *protoid = NULL);
 
     static void init();
 
@@ -139,11 +138,11 @@ class RFComm {
     int mPinLed;   ///< Pin used for the debug LED (-1 if not connected)
 
     unsigned int mRepeatSendTimes;  ///< How many times a single data is sent
-    unsigned int mProto;  ///< Protocol version (`RFCPROTO_1`, etc.)
+    protoid_t mProto;  ///< Protocol version
 
     static uint8_t sRecvData[RFCMAXBYTES];  ///< Buffer of bytes for received data
     static size_t sRecvDataLen;  ///< Length, in bytes, of received data
-    static proto_t *sRecvProto;  ///< Protocol used to receive latest data
+    static protoid_t sRecvProto;  ///< Protocol version used to receive latest data
     static proto_t sSymToPulses[3];  ///< Bit to pulse conversion for the different protocols
     static unsigned int sTimings_us[RFCMAXCHANGES];  ///< Raw hi and lo pulse lenghts to decode
 
@@ -152,7 +151,7 @@ class RFComm {
     void sendSymbol(symbol_t &sym, unsigned int pulseLen_us);
 
     static void recvIntHandler();
-    static bool decodeProto(unsigned int numChanges, proto_t *proto);
+    static bool decodeProto(unsigned int numChanges, protoid_t proto);
 };
 
 #endif

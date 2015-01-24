@@ -29,13 +29,13 @@ int main(int argc, char *argv[]) {
   rfRecv.setupRecv();
 
   const uint8_t *buf;
-  const proto_t *proto;
+  protoid_t protoid = rfProtoV1;
+  const char *protos[] = { "RF_V1", "RF_V2", "RF_V3" };
   size_t len;
 
   while (true) {
-    if ( (len = rfRecv.recv(&buf, &proto)) ) {
-      uint8_t synclen = proto->symbols[RFCSYM_SYNC].lo;
-      printf("recv %u bytes - sync len %u>", len, synclen);
+    if ( (len = rfRecv.recv(&buf, &protoid)) ) {
+      printf("recv %u bytes - proto %s>", len, protos[protoid]);
       for (size_t i=0; i<len; i++) {
         printf(" %3u", buf[i]);
       }
