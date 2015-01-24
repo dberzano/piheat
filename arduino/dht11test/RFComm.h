@@ -23,8 +23,8 @@
 ///
 /// How to use it for receiving on a Raspberry Pi (**note:** requires
 /// [wiringPi](http://wiringpi.com/) to work, and
-/// [see here](See https://projects.drogon.net/raspberry-pi/wiringpi/pins/) for
-/// PIN assignment):
+/// [see here](See https://projects.drogon.net/raspberry-pi/wiringpi/pins/) for PIN assignment
+/// caveats):
 ///
 /// ~~~{.cpp}
 /// #include "RFComm.h"

@@ -119,8 +119,8 @@ void RFComm::init() {
 
 }
 
-/// Gets received data. Pointer to data destination must be provided. Subsequent
-/// calls will return zero until fresh data is available.
+/// Gets received data. Pointer to data destination must be provided. Subsequent calls will return
+/// zero until fresh data is available.
 ///
 /// \param buf Function will store there a pointer to data
 /// \param proto A protocol struct is returned there

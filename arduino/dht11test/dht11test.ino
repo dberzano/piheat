@@ -13,7 +13,7 @@
 #include "RFComm.h"
 
 /// Digital PIN of the Arduino connected to the DHT11
-#define PIN_DHT11 2
+#define PIN_DHT11 3
 
 /// Digital PIN of the Arduino connected to the RF transmitter
 #define PIN_RF 4
@@ -38,7 +38,7 @@ void setup() {
   RFComm::init();
 
   // Setup instance for sending, and using protocol
-  rfSend.setupSend(RFCPROTO_2);
+  rfSend.setupSend(RFCPROTO_1, 20);
 }
 
 /// Main loop.
