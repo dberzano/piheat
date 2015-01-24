@@ -55,8 +55,6 @@
 ///
 /// Source of inspiration [is here](http://code.google.com/p/rc-switch/).
 ///
-/// \todo Callback function when message is ready
-///
 /// \author Dario Berzano
 
 #ifndef RFComm_h
@@ -126,7 +124,7 @@ class RFComm {
 
     RFComm(int pinData, int pinLed = -1);
     void setupSend(protoid_t proto = rfProtoV1, unsigned int repeat = 10);
-    void setupRecv();
+    void setupRecv( void (*callback)(size_t len, uint8_t *data, protoid_t protoid) = NULL );
     void send(uint8_t *buf, size_t len);
     size_t recv(const uint8_t **buf, protoid_t *protoid = NULL);
 
@@ -152,6 +150,8 @@ class RFComm {
 
     static void recvIntHandler();
     static bool decodeProto(unsigned int numChanges, protoid_t proto);
+
+    static void (*sRecvCallback)(size_t len, uint8_t *data, protoid_t protoid);
 };
 
 #endif

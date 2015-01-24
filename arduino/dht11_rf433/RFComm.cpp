@@ -23,11 +23,14 @@ void RFComm::setupSend(protoid_t proto, unsigned int repeat) {
 }
 
 /// Sets up the instance for receiving data (as opposed to sending).
-void RFComm::setupRecv() {
+///
+/// \param callback Function to call when done receiving a meaningful string (can be NULL)
+void RFComm::setupRecv( void (*callback)(size_t len, uint8_t *data, protoid_t protoid) ) {
   pinMode(mPinData, INPUT);
   if (mPinLed != -1) {
     pinMode(mPinLed, OUTPUT);
   }
+  sRecvCallback = callback;  // can be null
   #ifdef ARDUINO
   attachInterrupt(mPinData, recvIntHandler, CHANGE);
   #else
@@ -237,12 +240,20 @@ void RFComm::recvIntHandler() {
       if (++countSyncSignals == RFCNSYNC) {
         countChanges--;  // skip the short "hi" before this long "lo"
 
+        bool recvOk = true;
+
         if ( !decodeProto(countChanges, rfProtoV1) ) {
           if ( !decodeProto(countChanges, rfProtoV2) ) {
             if ( !decodeProto(countChanges, rfProtoV3) ) {
               // No suitable protocol found
+              recvOk = false;
             }
           }
+        }
+
+        if (recvOk && sRecvCallback != NULL) {
+          // Call the callback function, if any
+          sRecvCallback(sRecvDataLen, sRecvData, sRecvProto);
         }
 
         countSyncSignals = 0;
@@ -268,3 +279,4 @@ size_t RFComm::sRecvDataLen = 0;
 protoid_t RFComm::sRecvProto = rfProtoV1;
 proto_t RFComm::sSymToPulses[3] = {};
 unsigned int RFComm::sTimings_us[RFCMAXCHANGES];
+void (*RFComm::sRecvCallback)(size_t len, uint8_t *data, protoid_t protoid) = NULL;
