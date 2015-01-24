@@ -65,6 +65,8 @@
 ///
 /// Original version is [available here](http://playground.arduino.cc/Main/DHT11Lib).
 ///
+/// \todo Use interrupts instead
+///
 /// \authors George Hadjikyriacou, SimKard, Rob Tillaart, Dario Berzano
 
 #ifndef dht11_h

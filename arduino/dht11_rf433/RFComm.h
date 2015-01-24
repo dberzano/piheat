@@ -55,6 +55,9 @@
 ///
 /// Source of inspiration [is here](http://code.google.com/p/rc-switch/).
 ///
+/// \todo Callback function when message is ready
+/// \todo Use enums
+///
 /// \author Dario Berzano
 
 #ifndef RFComm_h
