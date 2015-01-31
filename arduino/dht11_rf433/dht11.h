@@ -65,6 +65,8 @@
 ///
 /// Original version is [available here](http://playground.arduino.cc/Main/DHT11Lib).
 ///
+/// \todo Use interrupts instead
+///
 /// \authors George Hadjikyriacou, SimKard, Rob Tillaart, Dario Berzano
 
 #ifndef dht11_h
@@ -88,24 +90,24 @@ class dht11 {
 
   private:
 
-    int pin;
-    int humidity;
-    int temperature;
-    unsigned int hist_sz;
-    unsigned int hist_idx;
-    unsigned int hist_nelm;
-    float *temp_hist;
-    float *humi_hist;
+    int mPin;
+    int mHumidity;
+    int mTemperature;
+    size_t mHistSz;
+    size_t mHistIdx;
+    size_t mHistNelm;
+    int *mHistTemp;
+    int *mHistHumi;
 
-    float mavg(float *vals, unsigned int n);
+    static int avg(int *vals, size_t n, int *avgDec);
 
   public:
 
-    dht11(int _pin, unsigned int _hist_sz);
+    dht11(int pin, size_t histSz);
     ~dht11();
     int read();
-    float get_weighted_temperature();
-    float get_weighted_humidity();
+    int get_weighted_temperature(int *avgDec);
+    int get_weighted_humidity(int *avgDec);
     int get_last_temperature();
     int get_last_humidity();
 

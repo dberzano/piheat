@@ -4,67 +4,77 @@
 
 /// Constructor.
 ///
-/// \param _pin Digital PIN assigned to this DHT11
-/// \param _hist_sz Number of history values to keep in memory
-dht11::dht11(int _pin, unsigned int _hist_sz) :
-  pin(_pin), hist_sz(_hist_sz), hist_idx(0), hist_nelm(0),
-  temperature(DHT11_INVALID), humidity(DHT11_INVALID) {
-  temp_hist = new float[hist_sz];
-  humi_hist = new float[hist_sz];
+/// \param pin Digital PIN assigned to this DHT11
+/// \param histSz Number of history values to keep in memory
+dht11::dht11(int pin, size_t histSz) :
+  mPin(pin), mHistSz(histSz), mHistIdx(0), mHistNelm(0),
+  mTemperature(DHT11_INVALID), mHumidity(DHT11_INVALID) {
+  mHistTemp = new int[mHistSz];
+  mHistHumi = new int[mHistSz];
 }
 
 /// Destructor.
 dht11::~dht11() {
-  delete[] temp_hist;
-  delete[] humi_hist;
+  delete[] mHistTemp;
+  delete[] mHistHumi;
 }
 
-/// Calculates the moving average.
+/// Calculates the arithmetic average of the input array.
 ///
-/// \return The moving average
+/// \return Integer part of average: use `avgDec` for getting decimals
 ///
-/// \param vals An array of float
+/// \param vals An array of int
 /// \param n Number of elements of the array to consider (must be > 0, unchecked)
-float dht11::mavg(float *vals, unsigned int n) {
-  float sum = 0.;
-  for (unsigned int i=0; i<n; i++) {
-    sum += vals[i];
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::avg(int *vals, size_t n, int *avgDec) {
+  int buf = 0.;
+  int avgInt;
+  for (size_t i=0; i<n; i++) {
+    buf += vals[i];
   }
-  return sum/n;
+  buf *= 100;
+  buf = buf/n;  // avg*100
+  avgInt = buf/100;
+  *avgDec = buf - (100*avgInt);
+  return avgInt;
 }
 
 /// Returns the averaged values of temperature from history.
 ///
-/// \return A float representing the temperature in °C, or `DHT11_INVALID` if history is empty.
-float dht11::get_weighted_temperature() {
-  if (hist_nelm == 0) {
+/// \return An int representing the temperature in °C, or `DHT11_INVALID` if history is empty.
+///
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::get_weighted_temperature(int *avgDec) {
+  if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return mavg(temp_hist, hist_nelm);
+  return avg(mHistTemp, mHistNelm, avgDec);
 }
 
 /// Returns the averaged values of humidity from history.
 ///
-/// \return A float representing the humidity in %, or `DHT11_INVALID` if history is empty.
-float dht11::get_weighted_humidity() {
-  if (hist_nelm == 0) {
+/// \return An int representing the humidity in %, or `DHT11_INVALID` if history is empty.
+///
+/// \param avgDec Pointer where to write the decimal part of the average
+int dht11::get_weighted_humidity(int *avgDec) {
+  if (mHistNelm == 0) {
     return DHT11_INVALID;
   }
-  return mavg(humi_hist, hist_nelm);
+  return avg(mHistHumi, mHistNelm, avgDec);
 }
 
 /// Returns the last temperature value read.
 ///
 /// \return An int representing the temperature in °C, or `DHT11_INVALID` if no value was ever read.
 int dht11::get_last_temperature() {
-  return temperature;
+  return mTemperature;
 }
 
 /// Returns the last humidity value read.
 ///
 /// \return An int representing the humidity in %, or `DHT11_INVALID` if no value was ever read.
 int dht11::get_last_humidity() {
-  return humidity;
+  return mHumidity;
 }
 
 /// Reads data from the DHT11.
@@ -89,23 +99,23 @@ int dht11::read() {
   }
 
   // Request sample
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, LOW);
+  pinMode(mPin, OUTPUT);
+  digitalWrite(mPin, LOW);
   delay(18);
-  digitalWrite(pin, HIGH);
+  digitalWrite(mPin, HIGH);
   delayMicroseconds(40);
-  pinMode(pin, INPUT);
+  pinMode(mPin, INPUT);
 
   // Acknowledge or timeout?
   unsigned int loopCnt = 10000;
-  while (digitalRead(pin) == LOW) {
+  while (digitalRead(mPin) == LOW) {
     if (loopCnt-- == 0) {
       return DHT11_ERR_TMOUT;
     }
   }
 
   loopCnt = 10000;
-  while (digitalRead(pin) == HIGH) {
+  while (digitalRead(mPin) == HIGH) {
     if (loopCnt-- == 0) {
       return DHT11_ERR_TMOUT;
     }
@@ -115,7 +125,7 @@ int dht11::read() {
   for (int i=0; i<40; i++) {
 
     loopCnt = 10000;
-    while (digitalRead(pin) == LOW) {
+    while (digitalRead(mPin) == LOW) {
       if (loopCnt-- == 0) {
         return DHT11_ERR_TMOUT;
       }
@@ -124,7 +134,7 @@ int dht11::read() {
     unsigned long t = micros();
 
     loopCnt = 10000;
-    while (digitalRead(pin) == HIGH) {
+    while (digitalRead(mPin) == HIGH) {
       if (loopCnt-- == 0) {
         return DHT11_ERR_TMOUT;
       }
@@ -154,19 +164,19 @@ int dht11::read() {
 
   // Everything OK: write output to the variables: bits[1] and bits[3] are always zero, therefore
   // they are omitted in formulas
-  humidity = bits[0];
-  temperature = bits[2];
+  mHumidity = bits[0];
+  mTemperature = bits[2];
 
   // Fill circular buffer for mobile average
-  temp_hist[hist_idx] = (float)temperature;
-  humi_hist[hist_idx] = (float)humidity;
+  mHistTemp[mHistIdx] = mTemperature;
+  mHistHumi[mHistIdx] = mHumidity;
 
-  if (++hist_idx == hist_sz) {
-    hist_idx = 0;
+  if (++mHistIdx == mHistSz) {
+    mHistIdx = 0;
   }
 
-  if (hist_nelm < hist_sz) {
-    hist_nelm++;
+  if (mHistNelm < mHistSz) {
+    mHistNelm++;
   }
 
   return DHT11_OK;
