@@ -65,6 +65,8 @@ class PiHeat(Daemon):
     self._password_hash = None
     ## Tolerance (in msec) between message's declared timestamp and server's timestamp
     self._tolerance_ms = 15000
+    ## Control file for the heating switch (we write 0 or 1 to this file)
+    self._switch_file = None
 
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
@@ -112,6 +114,7 @@ class PiHeat(Daemon):
       self._thingname = str( jsconf['thingname'] )
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
+      self._switch_file = str( jsconf['switch_file'] )
 
       hashfunc = SHA256.new()
       hashfunc.update( str(jsconf['password']) )
@@ -132,16 +135,23 @@ class PiHeat(Daemon):
   ## Sets status of heating.
   #
   #  @param status True for on, False for off
-  #
-  #  @todo To be fully implemented
   @heating_status.setter
   def heating_status(self, status):
     if status:
       status_str = 'on'
+      status_file = '1'
     else:
       status_str = 'off'
+      status_file = '0'
     logging.info('turning heating %s' % status_str)
+    try:
+      with open(self._switch_file, 'w') as fp:
+        fp.write(status_file)
+    except IOError as e:
+      logging.error('cannot change status: %s' % e)
+      return False
     self._heating_status = status
+    return True
 
 
   ## Gets the desired heating status.
