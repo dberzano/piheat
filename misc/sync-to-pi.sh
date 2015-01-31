@@ -5,4 +5,10 @@
 
 cd "$( dirname "$0" )/.."
 
-exec rsync -a --delete "$PWD"/ raspy.local:piheat/
+if [[ $1 == '--soft' ]] ; then
+  flag=''
+else
+  flag='--delete'
+fi
+
+exec rsync -a $flag "$PWD"/ raspy.local:piheat/
