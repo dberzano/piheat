@@ -71,7 +71,7 @@ def main(argv):
   # Process ID to a file
   if conf['pidfile']:
     with open(conf['pidfile'], 'w') as fp:
-      fp.write(os.getpid())
+      fp.write(str(os.getpid()))
 
   # Using GPIO.BOARD numbering scheme, i.e.: number of PINs as on the board
   GPIO.setmode(GPIO.BOARD)
