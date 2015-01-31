@@ -1,4 +1,4 @@
-/// \file dht11test.ino
+/// \file dht11_rf433.ino
 /// \brief Sample Arduino Sketch for the dht11 and RFComm classes
 ///
 /// Reads data from a DHT11 sensor and outputs it on the serial console. Outputs instant data every
@@ -23,6 +23,9 @@
 
 /// Size of the moving average array
 #define MAVG_SIZE 10
+
+/// Unique identifier of this RF transmitter (8 bit max)
+#define RF_UUID 34
 
 dht11 DHT11(PIN_DHT11, MAVG_SIZE);
 int count = 0;
@@ -71,14 +74,14 @@ void loop() {
       Serial.println(avghDec);
 
       // Prepare output array (32 bits)
-      rfdata[0] = 123;  // uuid
-      rfdata[1] = 231;  // uuid
-      rfdata[2] = (uint8_t)avgt;
-      rfdata[3] = (uint8_t)avgtDec;
-      rfdata[4] = (uint8_t)avgh;
-      rfdata[5] = (uint8_t)avghDec;
-      rfdata[6] = (uint8_t)( avgt + avgh );  // checksum
-      rfdata[7] = (uint8_t)( avgtDec + avghDec );  // checksum
+      rfdata[0] = RF_UUID;  // uuid
+      rfdata[1] = (uint8_t)avgt;
+      rfdata[2] = (uint8_t)avgtDec;
+      rfdata[3] = (uint8_t)avgh;
+      rfdata[4] = (uint8_t)avghDec;
+      rfdata[5] = (uint8_t)( avgt + avgh );  // checksum
+      rfdata[6] = (uint8_t)( avgtDec + avghDec );  // checksum
+      rfdata[7] = 0;  // null
 
       // Print out values to send (note: Arduino uses Little Endianness)
       Serial.print("SENDING");
