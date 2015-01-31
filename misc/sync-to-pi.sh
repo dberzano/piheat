@@ -11,4 +11,4 @@ else
   flag='--delete'
 fi
 
-exec rsync -a $flag "$PWD"/ raspy.local:piheat/
+exec rsync -a $flag "$PWD"/ raspy:piheat/
