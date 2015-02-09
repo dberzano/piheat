@@ -180,7 +180,10 @@ class PiHeat(Daemon):
     logging.debug('checking for commands')
 
     try:
-      r = requests.get( 'https://dweet.io/get/dweets/for/%s' % self._thingid )
+      # timeout=(connect timeout, read timeout) in seconds
+      r = requests.get(
+        'https://dweet.io/get/dweets/for/%s' % self._thingid,
+        timeout=(15,15))
     except requests.exceptions.RequestException as e:
       logging.error('failed to get latest commands: %s' % e)
       return False
