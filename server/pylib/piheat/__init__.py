@@ -77,6 +77,9 @@ class PiHeat(Daemon):
       '[%(module)s.%(funcName)s] %(message)s'
     date_format = '%Y-%m-%d %H:%M:%S'
 
+    # increase debug level of the requests module
+    logging.getLogger('requests').setLevel(logging.DEBUG)
+
     # logs on stderr
     logging.basicConfig(level=log_level, format=msg_format, datefmt=date_format, stream=sys.stderr)
 
