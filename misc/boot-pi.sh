@@ -14,7 +14,8 @@ screen -dmS 'rpi_switchctl' \
     --file=/tmp/heat \
     --user=$user --group=$group --mode=0600 \
     --pidfile=/tmp/rpi_switchctl.pid \
-    --pin=16
+    --pin=16 \
+    --on-is-high
 
 # Start the PiHeat server
 screen -dmS 'piheat_server' \

@@ -37,7 +37,17 @@ def main(argv):
     'pin': None
   }
 
-  opt,_ = getopt(argv, '', ['file=', 'user=', 'group=', 'mode=', 'pidfile=', 'pin='])
+  status_map = {
+    'on': GPIO.LOW,
+    'off': GPIO.HIGH
+  }
+
+  gpio_status_name = {
+    GPIO.LOW: 'low',
+    GPIO.HIGH: 'high'
+  }
+
+  opt,_ = getopt(argv, '', ['file=', 'user=', 'group=', 'mode=', 'pidfile=', 'pin=', 'on-is-high'])
 
   for k,v in opt:
     if k == '--file':
@@ -47,11 +57,14 @@ def main(argv):
     elif k == '--group':
       conf['group'] = v
     elif k == '--mode':
-      conf['mode'] = int(v, 8)
+      conf['mode'] = int(v, 8)  # 8 for octal
     elif k == '--pidfile':
       conf['pidfile'] = v
     elif k == '--pin':
       conf['pin'] = int(v)
+    elif k == '--on-is-high':
+      status_map['on'] = GPIO.HIGH
+      status_map['off'] = GPIO.LOW
 
   # Create the input file (~touch)
   with open(conf['ctlfile'], 'w') as fp:
@@ -76,9 +89,9 @@ def main(argv):
   # Using GPIO.BOARD numbering scheme, i.e.: number of PINs as on the board
   GPIO.setmode(GPIO.BOARD)
   GPIO.setup(conf['pin'], GPIO.OUT)
-  GPIO.output(conf['pin'], GPIO.HIGH)
+  GPIO.output(conf['pin'], status_map['off'])
 
-  pin_status = GPIO.HIGH
+  pin_status = status_map['off']
 
   while True:
 
@@ -88,19 +101,19 @@ def main(argv):
       newstatus = fp.read(1)
 
     if newstatus == '1':
-      if pin_status == GPIO.HIGH:
-        print 'turning on'
-        pin_status = GPIO.LOW
+      if pin_status == status_map['off']:
+        pin_status = status_map['on']
+        print 'turning on (pin %d => %s)' % (conf['pin'], gpio_status_name[pin_status])
         GPIO.output(conf['pin'], pin_status)
     elif newstatus == '0':
-      if pin_status == GPIO.LOW:
-        print 'turning off'
-        pin_status = GPIO.HIGH
+      if pin_status == status_map['on']:
+        pin_status = status_map['off']
+        print 'turning off (pin %d => %s)' % (conf['pin'], gpio_status_name[pin_status])
         GPIO.output(conf['pin'], pin_status)
     else:
       # Fix file content in case it contains garbage
       with open(conf['ctlfile'], 'w') as fp:
-        if pin_status == GPIO.HIGH:
+        if pin_status == status_map['off']:
           fp.write('0')
         else:
           fp.write('1')
@@ -115,10 +128,10 @@ def main(argv):
     #   break
     # elif cmd == 'on':
     #   print 'turning on'
-    #   GPIO.output(conf['pin'], GPIO.LOW)
+    #   GPIO.output(conf['pin'], status_map['on'])
     # elif cmd == 'off':
     #   print 'turning off'
-    #   GPIO.output(conf['pin'], GPIO.HIGH)
+    #   GPIO.output(conf['pin'], status_map['off'])
     # elif cmd != '':
     #   print 'not understood'
 
