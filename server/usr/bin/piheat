@@ -47,8 +47,8 @@ elif cmd == 'nodaemon':
 else:
   sys.stderr.write( 'Usage: %s [start|stop|status|nodaemon]\n' % os.path.basename(sys.argv[0]) )
 
-if isinstance(r, int):
-  sys.exit(r)
-elif r == True:
+if r == True:
   sys.exit(0)
+elif isinstance(r, int):
+  sys.exit(r)
 sys.exit(1)
