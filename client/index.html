@@ -35,6 +35,12 @@
     <script src="js/bootstrap.min.js"></script>
     <!-- <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script> -->
 
+    <!-- Clockpicker -->
+    <link rel="stylesheet" href="css/bootstrap-clockpicker.min.css">
+    <link rel="stylesheet" href="css/jquery-clockpicker.min.css">
+    <script src="js/bootstrap-clockpicker.min.js"></script>
+    <script src="js/jquery-clockpicker.min.js"></script>
+
     <!-- My script -->
     <script src="js/private-config.js"></script>
     <script src="js/misc.js"></script>
@@ -83,11 +89,11 @@
 
           <!-- turn on button -->
           <div id="control-container-turnon" class="btn-group btn-group-lg" role="group">
-            <button type="button" id="control-turnon" class="btn btn-success">Turn on</button>
+            <button type="button" id="control-turnon" class="btn btn-success"><span class="glyphicon glyphicon-fire"></span> for 2h</button>
           </div>
           <!-- turn off button -->
           <div id="control-container-turnoff" class="btn-group btn-group-lg" role="group">
-            <button type="button" id="control-turnoff" class="btn btn-danger">Turn off</button>
+            <button type="button" id="control-turnoff" class="btn btn-danger"><span class="glyphicon glyphicon-off"></span> for 24h</button>
           </div>
 
           <!-- reload page button -->
@@ -141,12 +147,76 @@
         </div>
       </div>
 
+      <!-- Program times -->
+      <div class="container">
+
+        <div class="row">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <div class="panel panel-info" id="piheat-program">
+
+              <div class="panel-heading text-center"></div>
+
+              <div class="panel-body">
+
+                <!-- automatically generated -->
+                <div id="piheat-program-content">
+                </div>
+
+                <!-- send programs -->
+                <div class="text-center" id="control-container-schedule">
+                  <div class="btn-group" role="group">
+                    <button type="button" id="control-schedule" class="btn btn-info"><span class="glyphicon glyphicon-ok"></span> Set</button>
+                  </div>
+                </div>
+
+                <!-- empty content (template, hidden) -->
+                <div id="prog-empty" style="display:none">
+                  No programs defined
+                </div>
+
+                <!-- remove button (template, hidden) -->
+                <div class="btn-group btn-group-xs prog-remove" id="prog-rmbtn-tpl" style="display:none" role="group">
+                  <button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
+                </div>
+
+                <!-- add program (template, hidden) -->
+                <div class="row row-no-padding" id="piheat-program-template" style="display:none">
+                  <div class="col-xs-5">
+                    <div class="input-group clockpicker" data-placement="bottom" data-align="bottom" data-autoclose="true">
+                      <input type="text" class="prog-begin form-control" value="00:00">
+                      <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-time"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-xs-5">
+                    <div class="input-group clockpicker" data-placement="bottom" data-align="bottom" data-autoclose="true">
+                      <input type="text" class="prog-end form-control" value="23:59">
+                      <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-time"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-xs-2">
+                    <div class="btn-group btn-group-md prog-new" role="group">
+                      <button type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+                    </div>
+                  </div>
+                </div><!-- /.row -->
+
+              </div><!-- /.panel-body -->
+            </div><!-- /.panel -->
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container -->
+
       <div class="container text-center piheat-credits">
         <a href="https://github.com/dberzano/piheat" id="piheat-link">Pi Heat</a> /
         <a href="http://getbootstrap.com/">Bootstrap</a> /
         <a href="http://dweet.io">dweet.io</a> /
         <a href="http://glyphicons.com/">Glyphicons</a> /
-        <a href="https://github.com/digitalbazaar/forge">Forge</a>
+        <a href="https://github.com/digitalbazaar/forge">Forge</a> /
+        <a href="https://github.com/weareoutman/clockpicker">Clockpicker</a>
       </div>
 
     </div><!-- /.master-container -->

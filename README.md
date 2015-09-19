@@ -43,7 +43,7 @@ All messages are JSON and have two mandatory fields:
 The `timestamp` is an ISO-formatted UTC date.
 
 
-### Status messages
+### Status
 
 Status messages are sent by the device to report current heating status.
 
@@ -55,7 +55,11 @@ Status messages are sent by the device to report current heating status.
   "temp": 123,
   "msgexp_s": 123,
   "msgupd_s": 123,
-  "name": "thing's friendly name"
+  "name": "thing's friendly name",
+  "program": [ { "begin": 1234, "end": 1234 },
+               { "begin": 1345, "end": 1345 } ]
+  "override_program": { "begin": 1345, "end": 1345, "status": true },
+  "lastcmd_id": "abcdef",
 }
 ```
 
@@ -67,6 +71,11 @@ Status messages are sent by the device to report current heating status.
 * `msgupd_s` *(optional)*: an `Integer` value used to tell the client what is
   the status update rate of the server.
 * `name` *(optional)*: a `String` with the thing's friendly name.
+* `program`: current timespans when heating is on.
+* `override_program`: a single temporary timespan that takes precedence over
+  current program and is deleted after it's elapsed.
+* `lastcmd_id`: ID of the last command sent, used to understand whether the
+  command has been received
 
 
 ### Commands
@@ -77,14 +86,16 @@ Commands are sent by clients to control heating.
 {
   "type": "command",
   "timestamp": "2014-07-30T21:06:15.600000Z",
-  "command": "turnon|turnoff"
+  "program": [ { "begin": 1234, "end": 1234 },
+               { "begin": 1345, "end": 1345 } ]
+  "override_program": { "begin": 1345, "end": 1345, "status": true },
+  "id": "abcdef"
 }
 ```
 
-Command is a case-insensitive string. Possible commands:
-
-* **turnon**: requests to turn heating on
-* **turnoff**: requests to turn heating off
+* `program`: see [#Status](Status)
+* `override_program`: see [#Status](Status)
+* `id`: a unique ID
 
 
 Client configuration
@@ -99,8 +110,7 @@ configuration like the following:
 ```json
 piheat_config = {
   "thingid": "<thingid>",
-  "default_msg_expiry_s": 12345,
-  "default_msg_update_s": 12345
+  "password": "<password>"
 };
 ```
 
@@ -111,12 +121,7 @@ issue a warning if they are not configured.
   dweets are public, and there is no registration needed, everybody can "dweet"
   in place of your thing, so set a difficult-to-guess name, like a UUID. It must
   be the same on the client and on the server.
-* **default_msg_expiry_s**: default message expiration time, will be overridden
-  by an optional value sent by the server inside status messages. All dweets
-  older than the specified number of seconds will be considered expired, and
-  therefore ignored.
-* **default_msg_update_s**: default message update rate (*i.e.* interval
-  between) two consecutive status requests to the server.
+* **password** *(optional)*: encryption password
 
 
 Encrypted messages

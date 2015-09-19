@@ -20,6 +20,25 @@
   margin-top: 20px;
 }
 
+div#piheat-program {
+  margin-top: 20px;
+}
+
+.row-no-padding [class*="col-"] {
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.prog-row {
+  margin-bottom: 10px;
+}
+
+#prog-empty {
+  font-size: 150%;
+  color: #c0c0c0;
+  text-align: center;
+}
+
 .piheat-credits {
   margin-top: 40px;
   color: #c0c0c0;

@@ -32,14 +32,17 @@
     'password': '#control-password',
     'turnon': '#control-turnon',
     'turnoff': '#control-turnoff',
-    'reload': '#control-reload'
+    'reload': '#control-reload',
+    'debug': '#control-debug',
+    'schedule': '#control-schedule'
   }
 
   var control_containers = {
     'turnon': '#control-container-turnon',
     'turnoff': '#control-container-turnoff',
     'debug': '#control-container-debug',
-    'reload': '#control-container-reload'
+    'reload': '#control-container-reload',
+    'schedule': '#control-container-schedule'
   }
 
   var inputs = {
@@ -54,18 +57,25 @@
 
   /// Current status and expected commands
   var CurrentStatus = {
-    status : null,
-    when : null,
-    new_status : null,
-    new_status_when : null,
+    when: null,
     password : null,
     debug: false,
-    msg_expiry_s: null,
-    msg_update_s: null,
-    name: null,
     tolerance_ms: 15000,
     expect_cmd_result: false,
     msg_update_expect_cmd_result_s: 7,
+    lastcmd_id: null,
+
+    redraw_programs: false,
+    new_program: [],
+
+    // The following are part of the status JSON
+    name: null,
+    msg_expiry_s: null,
+    msg_update_s: null,
+    status: null,
+    program: [],
+    override_program: null,
+    cmd_id: null,
   };
 
   var check_config = function() {
@@ -111,11 +121,12 @@
     $(pages.password).show();
     $(pages.errors).hide();
 
-    Display.heating_status();
+    Display.draw_status();
 
     // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
+    $(controls.schedule).click( Control.schedule );
     $(controls.reload).click( Control.reload );
 
     // debug button
@@ -129,16 +140,16 @@
 
     $(controls.password).click(function() {
 
-      // password button pressed
+      // Password button pressed
       CurrentStatus.password = $(inputs.password).val();
       $(pages.control).show();
       $(pages.password).hide();
 
-      // reset errors
+      // Reset errors
       Display.request_error(false);
-      Display.update_error(false, false);
+      Display.updated(false, false);
 
-      // commence loops
+      // Commence loops
       Control.read_status_loop();
       Display.last_updated_loop();
       Display.request_received_loop();
@@ -154,6 +165,18 @@
 
   };
 
+  // ************************************************************************ //
+  var Timespan = {
+
+    create : function(begin, end) {
+      a = begin.getUTCHours()*100 + begin.getUTCMinutes();
+      b = end.getUTCHours()*100 + end.getUTCMinutes();
+      return { begin: a, end: b };
+    }
+
+  };
+
+  // ************************************************************************ //
   var Logger = {
 
     pad : function(num, digits) {
@@ -181,48 +204,137 @@
 
   };
 
+  // ************************************************************************ //
   var Display = {
 
     last_updated_timeout : null,
 
-    heating_status : function() {
+    draw_programs : function(drawNew) {
 
+      // note: new_program is in current timezone
+      //       program is in UTC
+
+      if (!drawNew) {
+        CurrentStatus.new_program = [];
+        Logger.log('Control.schedule', 'Converting hours from UTC');
+        $.each(CurrentStatus.program, function (key,item) {
+          d = new Date();
+          d.setUTCHours(parseInt(item.begin/100));
+          d.setUTCMinutes(item.begin%100);
+          newitem = { begin: d.getHours()*100+d.getMinutes() };
+          d.setUTCHours(parseInt(item.end/100));
+          d.setUTCMinutes(item.end%100);
+          newitem.end = d.getHours()*100+d.getMinutes();
+          CurrentStatus.new_program.push(newitem);
+        });
+
+      }
+      CurrentStatus.new_program.sort(function(a, b) {return a.begin-b.begin});
+
+      Logger.log('Display.draw_programs', 'Drawing programs');
+
+      $('#piheat-program-content').empty();
+      $('#piheat-program .panel-heading').empty();
+
+      tpl = $("#piheat-program-template").clone();
+      tpl.removeAttr("id");
+      tpl.addClass("prog-head");
+      tpl.find(".prog-remove").remove();
+      tpl.show()
+      tpl.appendTo("#piheat-program .panel-heading")
+      tpl.find(".clockpicker").clockpicker();
+      tpl.find(".prog-new button").click(function() {
+        beg = $(this).closest(".prog-head").find(".prog-begin").val();
+        end = $(this).closest(".prog-head").find(".prog-end").val();
+        beg = parseInt(beg.replace(":", ""), 10);
+        end = parseInt(end.replace(":", ""), 10);
+        if (beg > end) {
+          // Swap
+          beg = beg + end;
+          end = beg - end;
+          beg = beg - end;
+        }
+        Logger.log("<click event>", "Clicked: " + beg + "->" + end);
+        Logger.log("<click event>", "Before: " + JSON.stringify( CurrentStatus.new_program ));
+        exists = CurrentStatus.new_program.find(function (item) {
+          return item.begin == beg && item.end == end;
+        });
+        if (!exists) {
+          CurrentStatus.new_program.push({ begin: beg, end: end });
+          CurrentStatus.new_program.sort(function(a, b) {return a.begin-b.begin});
+          Display.draw_programs(true);
+        }
+        Logger.log("<click event>", "After: " + JSON.stringify( CurrentStatus.new_program ));
+      });
+
+      tb = $("<table></table>").addClass("table").appendTo("#piheat-program-content");
+      $.each(CurrentStatus.new_program, function(key, item) {
+
+        rw = $("<tr></tr>").appendTo(tb);
+
+        beg_str = item.begin.toString();
+        while (beg_str.length < 4) beg_str = "0"+beg_str;
+        beg_str = beg_str.substring(0,2)+":"+beg_str.substring(2,4);
+        $("<td>"+beg_str+"</td>").attr("align", "center").appendTo(rw);
+
+        end_str = item.end.toString();
+        while (end_str.length < 4) end_str = "0"+end_str;
+        end_str = end_str.substring(0,2)+":"+end_str.substring(2,4);
+        $("<td>"+end_str+"</td>").attr("align", "center").appendTo(rw);
+
+        Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str)
+
+        rmb = $("#prog-rmbtn-tpl").clone();
+        rmb.css("display", "");
+        td = $("<td></td>").attr("align", "center").appendTo(rw);
+        rmb.appendTo(td);
+        rmb.data("prog-begin", item.begin);
+        rmb.data("prog-end", item.end);
+        rmb.click(function() {
+          begn = parseInt($(this).data("prog-begin"));
+          endn = parseInt($(this).data("prog-end"));
+          Logger.log("<click event>", "Removing: " + begn + ", " + endn);
+          CurrentStatus.new_program = CurrentStatus.new_program.filter(function (item) {
+            return item.begin != begn || item.end != endn;
+          });
+          Display.draw_programs(true);
+          Logger.log("<click event>", "After removal: " + JSON.stringify( CurrentStatus.new_program ));
+        });
+
+      });
+
+      if ($(tb).is(":empty")) {
+        $("#prog-empty").clone().appendTo(tb).show();
+      }
+
+      CurrentStatus.redraw_programs = false;
+    },
+
+    draw_status : function() {
+      $(texts.thingname).text(CurrentStatus.name);
       $.each(heating_status, function(key, value) {
         // hide all status labels
         $(value).hide();
       });
-
-      if (CurrentStatus.status == 'on') {
-        $(heating_status.on).show();
-        $(control_containers.turnon).hide();
-        $(control_containers.turnoff).show();
-        $(control_containers.reload).hide();
-      }
-      else if (CurrentStatus.status == 'off') {
-        $(heating_status.off).show();
-        $(control_containers.turnon).show();
-        $(control_containers.turnoff).hide();
-        $(control_containers.reload).hide();
+      if (CurrentStatus.status === null) {
+        $([control_containers.turnon,
+           control_containers.turnoff,
+           control_containers.schedule].join(",")).hide();
+        $(control_containers.reload).show();
+        $(heating_status.unknown).show();
       }
       else {
-        // invalid/unknown
-        $(heating_status.unknown).show();
-        $(control_containers.turnon).hide();
-        $(control_containers.turnoff).hide();
-        $(control_containers.reload).show();
+        $([control_containers.turnon,
+           control_containers.turnoff,
+           control_containers.schedule].join(",")).show();
+        $(control_containers.reload).hide();
+        $(CurrentStatus.status ? heating_status.on : heating_status.off).show();
       }
-
-      // thing's friendly name
-      if ( $(texts.thingname).text() != CurrentStatus.name ) {
-        $(texts.thingname).text( CurrentStatus.name );
-      }
-
+      if (CurrentStatus.redraw_programs) Display.draw_programs();
     },
 
     last_updated_loop : function() {
-      if (Display.last_updated_timeout) {
-        clearTimeout(Display.last_updated_timeout);
-      }
+      if (Display.last_updated_timeout) clearTimeout(Display.last_updated_timeout);
       Display.last_updated(CurrentStatus.when);
       Display.last_updated_timeout = setTimeout(Display.last_updated_loop, 5000);
     },
@@ -230,22 +342,15 @@
     last_updated : function(when) {
       if (when) {
         var diff = (new Date()-when) / 1000;  // seconds
-        var msg;
-        if (diff < 30) {
-          msg = 'just now';
-        }
-        else if (diff < 60) {
-          msg = 'less than a minute ago';
-        }
+        if (diff < 30) msg = 'just now';
+        else if (diff < 60) msg = 'less than a minute ago';
         else {
           diff /= 60;
           if (diff < 60) {
             msg = Math.round(diff) + ' min ago';
           }
         }
-        if ( $(update_status.updated).text() != msg ) {
-          $(update_status.updated).text(msg);
-        }
+        $(update_status.updated).text(msg);
         $(update_status.updated).show();
       }
       else {
@@ -262,29 +367,23 @@
     },
 
     request_received : function() {
-
       if (CurrentStatus.expect_cmd_result) {
-        // command not yet accepted
         $(request_status.sent).show();
-        var disable_turnon = (CurrentStatus.new_status == 'on');
-        $(controls.turnon).prop('disabled', disable_turnon);
-        $(controls.turnoff).prop('disabled', !disable_turnon);
+        $([controls.turnon, controls.turnoff, controls.schedule,
+           "#piheat-program-content :input",
+           "#piheat-program .panel-heading :input"].join(",")).prop('disabled', true);
       }
       else {
         $(request_status.sent).hide();
-        $(controls.turnon).prop('disabled', false);
-        $(controls.turnoff).prop('disabled', false);
+        $([controls.turnon, controls.turnoff, controls.schedule,
+           "#piheat-program-content :input",
+           "#piheat-program .panel-heading :input"].join(",")).prop('disabled', false);
       }
-
     },
 
     request_error : function(iserr) {
-      if (iserr) {
-        $(request_status.error).show();
-      }
-      else {
-        $(request_status.error).hide();
-      }
+      if (iserr) $(request_status.error).show();
+      else $(request_status.error).hide();
     },
 
     updating : function() {
@@ -292,7 +391,7 @@
       $(update_status.updating).fadeIn( { duration: 'slow', queue: true } );
     },
 
-    update_error : function(iserr, ispwderr) {
+    updated : function(iserr, ispwderr) {
       $(controls.reload).prop('disabled', false);
       $(update_status.updating).fadeOut( { duration: 'slow', queue: true } );
       if (iserr) {
@@ -311,6 +410,7 @@
 
   };
 
+  // ************************************************************************ //
   var Cipher = {
 
     encrypt : function(obj) {
@@ -397,6 +497,7 @@
 
   };
 
+  // ************************************************************************ //
   var Control = {
 
     read_status_timeout : null,
@@ -443,11 +544,9 @@
 
           var now = new Date();
           var item_date;
-          var status = null;
-          var new_status = null;
-          var status_date = null;
-          var new_status_date = null;
           var password_error = false;
+          var NewStatus = null;
+          var NewCommand = null;
 
           // data is an object; most recent is on top, so we can break at first valid entry
           $.each( data.with, function(key, item) {
@@ -489,57 +588,42 @@
                 return true;
               }
 
-              if (!status && msg.type == 'status' && typeof msg.status !== 'undefined') {
-                status = msg.status.toLowerCase();
-                if (status == 'on' || status == 'off') {
-                  status_date = item_real_date;
-
-                  try {
-                    if (msg.msgexp_s != CurrentStatus.msg_expiry_s && msg.msgexp_s > 5) {
-                      CurrentStatus.msg_expiry_s = parseInt(msg.msgexp_s);
-                      Logger.log('Control.read_status', 'new message expiry: '+msg.msgexp_s+' s');
-                    }
-                  }
-                  catch (e) {}
-
-                  try {
-                    if (msg.msgupd_s != CurrentStatus.msg_update_s && msg.msgupd_s > 5) {
-                      CurrentStatus.msg_update_s = parseInt(msg.msgupd_s);
-                      Logger.log('Control.read_status', 'new update rate: '+msg.msgupd_s+' s');
-                    }
-                  }
-                  catch (e) {}
-
-                  try {
-                    if (msg.name != CurrentStatus.name) {
-                      CurrentStatus.name = msg.name;
-                      Logger.log('Control.read_status', 'new name: '+msg.name);
-                    }
-                  }
-                  catch (e) {}
-
+              if (NewStatus === null && msg.type == 'status') {
+                try {
+                  NewStatus = {};
+                  NewStatus.when = item_real_date;
+                  NewStatus.status = msg.status;
+                  NewStatus.msg_expiry_s = parseInt(msg.msgexp_s);
+                  NewStatus.msg_update_s = parseInt(msg.msgupd_s);
+                  NewStatus.program = msg.program.sort();
+                  NewStatus.override_program = msg.override_program;
+                  NewStatus.cmd_id = msg.lastcmd_id;
+                  NewStatus.name = msg.name.toString();
+                  Logger.log('Control.read_status',
+                             'Valid status received: ' + JSON.stringify(msg));
                 }
-                else {
-                  // status message is not valid: skip
-                  Logger.log('Control.read_status', 'invalid status ignored: \"' + status + '\"');
-                  status = null;
+                catch (e) {
+                  NewStatus = null;
+                  Logger.log('Control.read_status',
+                             'Invalid status received (' + e + '), skipping: ' +
+                              JSON.stringify(msg));
                 }
               }
-              else if (!new_status && msg.type == 'command' && typeof msg.command !== 'undefined') {
-                command = msg.command.toLowerCase();
-                if (command == 'turnon') {
-                  new_status = 'on';
-                  new_status_date = item_real_date;
+              else if (NewCommand === null && msg.type == 'command') {
+                try {
+                  NewCommand = {}
+                  NewCommand.cmd_id = msg.id.toString();
+                  Logger.log('Control.read_status',
+                             'Last command received: ' + JSON.stringify(msg));
                 }
-                else if (command == 'turnoff') {
-                  new_status = 'off';
-                  new_status_date = item_real_date;
-                }
-                else {
-                  // command is not valid: skip
-                  Logger.log('Control.read_status', 'invalid command ignored: \"' + command + '\"');
+                catch (e) {
+                  NewCommand = null;
+                  Logger.log('Control.read_status',
+                             'Invalid last command received (' + e + '), skipping: ' +
+                              JSON.stringify(msg));
                 }
               }
+
             }
             else {
               Logger.log('Control.read_status', 'message expired: ignoring the rest');
@@ -548,52 +632,77 @@
 
           });
 
-          // what is our status and last command?
-          CurrentStatus.status = status;
-          CurrentStatus.new_status = new_status;
-          if (status) {
-            Logger.log('Control.read_status', 'status: \"' + status +
-              '\" on ' + status_date.toISOString());
-            CurrentStatus.when = status_date;
-            password_error = false;
+          // Check what changed
+          if (NewStatus) {
+            if (CurrentStatus.cmd_id != NewStatus.cmd_id) {
+              CurrentStatus.redraw_programs = true;
+            }
+            CurrentStatus.status = NewStatus.status;
+            CurrentStatus.msg_expiry_s = NewStatus.msg_expiry_s;
+            CurrentStatus.msg_update_s = NewStatus.msg_update_s;
+            CurrentStatus.program = NewStatus.program;
+            CurrentStatus.override_program = NewStatus.override_program;
+            CurrentStatus.cmd_id = NewStatus.cmd_id;
+            CurrentStatus.name = msg.name;
+            CurrentStatus.when = NewStatus.when;
           }
           else {
-            Logger.log('Control.read_status', 'status: <unknown>');
+            // Status is unknown
+            Logger.log('Control.read_status', 'Current status is unknown: PiHeat offline?');
+            CurrentStatus.status = null;
             CurrentStatus.when = null;
           }
-          if (new_status) {
-            Logger.log('Control.read_status', 'new_status: \"' + new_status +
-              '\" on ' + new_status_date.toISOString());
-            CurrentStatus.new_status_when = new_status_date;
-          }
-          else {
-            Logger.log('Control.read_status', 'new_status: <unknown>');
-            CurrentStatus.new_status_when = null;
-          }
 
-          // expecting command result? faster update
-          CurrentStatus.expect_cmd_result = (status && new_status && status != new_status);
-
-          Display.update_error(false, password_error);
-          Display.heating_status();
-          Display.last_updated_loop();
+          CurrentStatus.expect_cmd_result = (NewCommand && NewCommand.cmd_id != CurrentStatus.cmd_id) ? true : false;
+          Logger.log('Control.read_status', 'Expecting new command: '+CurrentStatus.expect_cmd_result);
+          Display.updated(false, password_error);
+          Display.draw_status();
           Display.request_received_loop();
+          Display.last_updated_loop();
 
         })
         .fail(function() {
-          Display.update_error(true, false);
+          Display.updated(true, false);
           Logger.log('Control.read_status', 'failed reading dweets');
         })
     },
 
     turn_on : function() {
-      $(controls.turnon).prop('disabled', true);
-      Control.push_request('turnon');
+      now = new Date();
+      later = new Date(now);
+      later.setHours(later.getHours()+2)
+      ovr = Timespan.create(now, later);
+      ovr.status = true;
+      CurrentStatus.override_program = ovr;
+      Control.req();
     },
 
     turn_off : function() {
-      $(controls.turnoff).prop('disabled', true);
-      Control.push_request('turnoff', controls.turnoff);
+      now = new Date();
+      later = new Date(now);
+      later.setMinutes(later.getMinutes()-1)
+      later.setHours(later.getHours()+24)
+      ovr = Timespan.create(now, later);
+      ovr.status = false;
+      CurrentStatus.override_program = ovr;
+      Control.req();
+    },
+
+    schedule : function() {
+      CurrentStatus.override_program = null;
+      CurrentStatus.program = CurrentStatus.new_program;
+      Logger.log('Control.schedule', 'Converting hours to UTC');
+      $.each(CurrentStatus.new_program, function (key,item) {
+        d = new Date();
+        d.setHours( parseInt(item.begin/100) );
+        d.setMinutes( item.begin%100 );
+        CurrentStatus.new_program[key].begin = d.getUTCHours()*100+d.getUTCMinutes();
+        d.setHours( parseInt(item.end/100) );
+        d.setMinutes( item.end%100 );
+        CurrentStatus.new_program[key].end = d.getUTCHours()*100+d.getUTCMinutes();
+        Logger.log('Control.schedule', '==> '+JSON.stringify(CurrentStatus.new_program[key]));
+      });
+      Control.req();
     },
 
     reload : function() {
@@ -613,32 +722,28 @@
     },
 
     debug : function() {
-      console.log('no action associated to the debug button');
+      Logger.log('Control.debug', 'this is the debug action');
+      Control.read_status();
     },
 
-    push_request : function(req) {
-
-      Logger.log('Control.push_request', 'requesting command: \"' + req + '\"');
-
+    req : function() {
+      content = { type: 'command',
+                  timestamp: (new Date()).toISOString(),
+                  program: CurrentStatus.program,
+                  override_program: CurrentStatus.override_program,
+                  id: forge.util.encode64(forge.random.getBytesSync(30)) }
+      Logger.log('Control.req', 'sending request: ' + JSON.stringify(content));
       $.post(
         'https://dweet.io/dweet/for/' + cfg.thingid,
-        Cipher.encrypt( { type: 'command', command: req, timestamp: (new Date()).toISOString() } )
+        Cipher.encrypt(content)
       )
         .fail(function() {
           Display.request_error(true);
-          Logger.log('Control.push_request', 'requesting command failed');
+          Logger.log('Control.req', 'requesting command failed');
         })
         .done(function () {
           CurrentStatus.expect_cmd_result = true;
           Display.request_error(false);
-          if (req == 'turnon') {
-            CurrentStatus.new_status_when = new Date();
-            CurrentStatus.new_status = 'on';
-          }
-          else if (req == 'turnoff') {
-            CurrentStatus.new_status_when = new Date();
-            CurrentStatus.new_status = 'off';
-          }
           Display.request_received_loop();
           Control.read_status_loop(true);  // true = delayed request
         });
@@ -648,6 +753,6 @@
   };
 
   // entry point
-  $(document).ready( init );
+  $(document).ready(init);
 
 })(jQuery, (typeof piheat_config !== 'undefined') ? piheat_config : null);
