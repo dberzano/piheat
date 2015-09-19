@@ -6,6 +6,32 @@ Remote heating control via Raspberry Pi.
 Uses [dweet.io](http://dweet.io/) for asynchronous communication.
 
 
+Installation on Pi
+------------------
+
+As root:
+
+```bash
+bash -xe <(curl https://raw.githubusercontent.com/dberzano/piheat/master/misc/install.sh)
+```
+
+**Note:** do not forget `-xe` to bash.
+
+You will be prompted for three pieces of information:
+
+* **ID:** a unique ID for your heating control, same used in web application
+* **Name:** a friendly name for your heating control (pick any)
+* **Password:** encryption passwod (won't be displayed)
+
+The daemon will start shortly.
+
+
+### Updates
+
+Updates occur automatically. Whenever a new change occurs, it is automatically
+retrieved and applied.
+
+
 Allowed JSON messages
 ---------------------
 
