@@ -16,6 +16,16 @@
   margin-bottom: 20px;
 }
 
+#page-control .btn-group {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+#page-control .btn-group {
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
 .piheat-topspace {
   margin-top: 20px;
 }
@@ -42,6 +52,10 @@ div#piheat-program {
 .piheat-credits {
   margin-top: 40px;
   color: #c0c0c0;
+}
+
+#control-container-schedule {
+  margin-top: 10px;
 }
 
 .piheat-credits a#piheat-link {

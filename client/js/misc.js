@@ -52,7 +52,15 @@
   var texts = {
     'thingname': '#text-thingname',
     'errors': '#text-errors',
-    'errors_title': '#text-errors-title'
+    'errors_title': '#text-errors-title',
+    'progs': '#piheat-program-content',
+    'prog_title': '#piheat-program .panel-heading'
+  }
+
+  var templates = {
+    'prog_rmbtn': '#prog-rmbtn-tpl',
+    'prog_line': '#piheat-program-template',
+    'prog_empty': '#prog-empty'
   }
 
   /// Current status and expected commands
@@ -148,6 +156,7 @@
       // Reset errors
       Display.request_error(false);
       Display.updated(false, false);
+      Display.draw_programs();
 
       // Commence loops
       Control.read_status_loop();
@@ -233,15 +242,15 @@
 
       Logger.log('Display.draw_programs', 'Drawing programs');
 
-      $('#piheat-program-content').empty();
-      $('#piheat-program .panel-heading').empty();
+      $(texts.progs).empty();
+      $(texts.prog_title).empty();
 
-      tpl = $("#piheat-program-template").clone();
+      tpl = $(templates.prog_line).clone();
       tpl.removeAttr("id");
       tpl.addClass("prog-head");
       tpl.find(".prog-remove").remove();
       tpl.show()
-      tpl.appendTo("#piheat-program .panel-heading")
+      tpl.appendTo(texts.prog_title)
       tpl.find(".clockpicker").clockpicker();
       tpl.find(".prog-new button").click(function() {
         beg = $(this).closest(".prog-head").find(".prog-begin").val();
@@ -267,7 +276,7 @@
         Logger.log("<click event>", "After: " + JSON.stringify( CurrentStatus.new_program ));
       });
 
-      tb = $("<table></table>").addClass("table").appendTo("#piheat-program-content");
+      tb = $("<table></table>").addClass("table").appendTo(texts.progs);
       $.each(CurrentStatus.new_program, function(key, item) {
 
         rw = $("<tr></tr>").appendTo(tb);
@@ -284,7 +293,7 @@
 
         Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str)
 
-        rmb = $("#prog-rmbtn-tpl").clone();
+        rmb = $(templates.prog_rmbtn).clone();
         rmb.css("display", "");
         td = $("<td></td>").attr("align", "center").appendTo(rw);
         rmb.appendTo(td);
@@ -304,7 +313,7 @@
       });
 
       if ($(tb).is(":empty")) {
-        $("#prog-empty").clone().appendTo(tb).show();
+        tb.replaceWith( $(templates.prog_empty).clone().show() );
       }
 
       CurrentStatus.redraw_programs = false;
@@ -370,14 +379,17 @@
       if (CurrentStatus.expect_cmd_result) {
         $(request_status.sent).show();
         $([controls.turnon, controls.turnoff, controls.schedule,
-           "#piheat-program-content :input",
-           "#piheat-program .panel-heading :input"].join(",")).prop('disabled', true);
+           texts.progs+" :input",
+           texts.prog_title+" :input"].join(",")).prop('disabled', true);
       }
       else {
         $(request_status.sent).hide();
         $([controls.turnon, controls.turnoff, controls.schedule,
-           "#piheat-program-content :input",
-           "#piheat-program .panel-heading :input"].join(",")).prop('disabled', false);
+           texts.progs+" :input",
+           texts.prog_title+" :input"].join(",")).prop('disabled', false);
+      }
+      if (CurrentStatus.status === null) {
+        $(texts.prog_title+" :input").prop('disabled', true);
       }
     },
 
@@ -659,8 +671,11 @@
             }
           }
 
-          CurrentStatus.expect_cmd_result = (NewCommand && NewCommand.cmd_id != CurrentStatus.cmd_id) ? true : false;
-          Logger.log('Control.read_status', 'Expecting new command: '+CurrentStatus.expect_cmd_result);
+          CurrentStatus.expect_cmd_result = (NewCommand &&
+                                             NewCommand.cmd_id != CurrentStatus.cmd_id) ?
+                                            true : false;
+          Logger.log('Control.read_status',
+                     'Expecting new command: '+ CurrentStatus.expect_cmd_result);
           Display.updated(false, password_error);
           Display.draw_status();
           Display.request_received_loop();
