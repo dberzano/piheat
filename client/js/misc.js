@@ -651,6 +651,12 @@
             Logger.log('Control.read_status', 'Current status is unknown: PiHeat offline?');
             CurrentStatus.status = null;
             CurrentStatus.when = null;
+            CurrentStatus.override_program = null;
+            CurrentStatus.cmd_id = null;
+            if (CurrentStatus.program.length > 0) {
+              CurrentStatus.redraw_programs = true;
+              CurrentStatus.program = [];
+            }
           }
 
           CurrentStatus.expect_cmd_result = (NewCommand && NewCommand.cmd_id != CurrentStatus.cmd_id) ? true : false;
