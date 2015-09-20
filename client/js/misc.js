@@ -10,6 +10,13 @@
     'unknown': '#heating-status-unknown'
   };
 
+  var heating_override = {
+    'on': '#heating-override-on',
+    'off': '#heating-override-off',
+    'none': '#heating-override-none',
+    'hm': '#heating-override .heating-override-until'
+  };
+
   var update_status = {
     'updated': '#update-status-updated',
     'error': '#update-status-error',
@@ -35,7 +42,8 @@
     'turnoff': '#control-turnoff',
     'reload': '#control-reload',
     'debug': '#control-debug',
-    'schedule': '#control-schedule'
+    'schedule': '#control-schedule',
+    'cancel': '#control-cancel',
   }
 
   var control_containers = {
@@ -43,7 +51,8 @@
     'turnoff': '#control-container-turnoff',
     'debug': '#control-container-debug',
     'reload': '#control-container-reload',
-    'schedule': '#control-container-schedule'
+    'schedule': '#control-container-schedule',
+    'cancel': '#control-container-cancel'
   }
 
   var inputs = {
@@ -138,6 +147,7 @@
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
     $(controls.schedule).click( Control.schedule );
+    $(controls.cancel).click( Control.cancel );
     $(controls.reload).click( Control.reload );
 
     // debug button
@@ -339,10 +349,15 @@
         // hide all status labels
         $(value).hide();
       });
+      $.each(heating_override, function(key, value) {
+        // hide all override status labels
+        $(value).hide();
+      });
       if (CurrentStatus.status === null) {
         $([control_containers.turnon,
            control_containers.turnoff,
-           control_containers.schedule].join(",")).hide();
+           control_containers.schedule,
+           control_containers.cancel].join(",")).hide();
         $(control_containers.reload).show();
         $(heating_status.unknown).show();
       }
@@ -352,6 +367,28 @@
            control_containers.schedule].join(",")).show();
         $(control_containers.reload).hide();
         $(CurrentStatus.status ? heating_status.on : heating_status.off).show();
+
+        if (CurrentStatus.override_program) {
+          $(control_containers.cancel).show();
+          $(CurrentStatus.override_program.status ? heating_override.on : heating_override.off)
+            .show();
+
+          d = new Date();
+          d.setUTCHours(parseInt(CurrentStatus.override_program.end/100));
+          d.setUTCMinutes(CurrentStatus.override_program.end%100);
+          dstr = d.getMinutes().toString();
+          if (dstr.length < 2) dstr = "0"+dstr;
+          dstr = d.getHours() + ":" + dstr;
+
+          $(heating_override.hm).text(dstr).show();
+
+          Logger.log('Display.draw_status', 'Override: ' + JSON.stringify(CurrentStatus.override_program) );
+          Logger.log('Display.draw_status', 'Override: ' + d );
+        }
+        else {
+          $(control_containers.cancel).hide();
+          $(heating_override.none).show();
+        }
       }
       if (CurrentStatus.redraw_programs) Display.draw_programs();
     },
@@ -392,13 +429,13 @@
     request_received : function() {
       if (CurrentStatus.expect_cmd_result) {
         $(request_status.sent).show();
-        $([controls.turnon, controls.turnoff, controls.schedule,
+        $([controls.turnon, controls.turnoff, controls.schedule, controls.cancel,
            texts.progs+" :input",
            texts.prog_title+" :input"].join(",")).prop('disabled', true);
       }
       else {
         $(request_status.sent).hide();
-        $([controls.turnon, controls.turnoff, controls.schedule,
+        $([controls.turnon, controls.turnoff, controls.schedule, controls.cancel,
            texts.progs+" :input",
            texts.prog_title+" :input"].join(",")).prop('disabled', false);
       }
@@ -724,7 +761,6 @@
     },
 
     schedule : function() {
-      CurrentStatus.override_program = null;
       CurrentStatus.program = CurrentStatus.new_program;
       Logger.log('Control.schedule', 'Converting hours to UTC');
       $.each(CurrentStatus.new_program, function (key,item) {
@@ -737,6 +773,12 @@
         CurrentStatus.new_program[key].end = d.getUTCHours()*100+d.getUTCMinutes();
         Logger.log('Control.schedule', '==> '+JSON.stringify(CurrentStatus.new_program[key]));
       });
+      Control.req();
+    },
+
+    cancel : function() {
+      // Cancel the override, does not touch programs
+      CurrentStatus.override_program = null;
       Control.req();
     },
 

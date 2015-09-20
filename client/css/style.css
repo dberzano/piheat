@@ -16,6 +16,12 @@
   margin-bottom: 20px;
 }
 
+#heating-override {
+  margin-top: -15px;
+  font-weight: normal;
+  color: #808080;
+}
+
 #page-control .btn-group {
   margin-top: 10px;
   margin-bottom: 10px;

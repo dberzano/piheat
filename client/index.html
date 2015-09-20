@@ -78,11 +78,18 @@
 
       <div class="container text-center" id="page-control">
 
-        <p class="piheat-bottomspace lead">Heating is
+        <p class="lead piheat-bottomspace">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
           <span id="heating-status-unknown" class="text-warning">unknown</span>
+        </p>
+
+        <p id="heating-override" class="piheat-bottomspace">
+          <!-- override status -->
+          <span id="heating-override-on" class="text-success">program ignored: heating will be <span class="text-success">on</span> until <span class="heating-override-until">XX:XX</span></span>
+          <span id="heating-override-off" class="text-danger">program ignored: heating will be <span class="text-danger">off</span> until <span class="heating-override-until">XX:XX</span></span>
+          <span id="heating-override-none">no override, considering program</span>
         </p>
 
         <div class="piheat-bottomspace">
@@ -95,6 +102,11 @@
           <!-- turn off button -->
           <div id="control-container-turnoff" class="btn-group btn-group-lg" role="group">
             <button style="width: 120px" type="button" id="control-turnoff" class="btn btn-danger"><span class="glyphicon glyphicon-off"></span> for 24h</button>
+          </div>
+
+          <!-- cancel -->
+          <div id="control-container-cancel" class="btn-group btn-group-lg" role="group">
+            <button style="width: 120px" type="button" id="control-cancel" class="btn btn-warning"><span class="glyphicon glyphicon-time"></span> program</button>
           </div>
 
           <!-- reload page button -->
@@ -124,7 +136,7 @@
           &nbsp;<span id="update-status-updating" class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;
         </p>
 
-      </div>
+      </div><!-- /.piheat-bottomspace -->
 
       <div class="container text-center" id="page-errors">
         <div class="row">
