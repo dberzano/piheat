@@ -25,7 +25,8 @@
   var pages = {
     'password': '#page-password',
     'control': '#page-control',
-    'errors': '#page-errors'
+    'errors': '#page-errors',
+    'program': '#page-program'
   };
 
   var controls = {
@@ -113,6 +114,7 @@
       $(texts.errors).html( check_config_result );
       $(pages.control).hide();
       $(pages.password).hide();
+      $(pages.program).hide();
       $(pages.errors).show();
       return;
     }
@@ -128,6 +130,7 @@
     $(pages.control).hide();
     $(pages.password).show();
     $(pages.errors).hide();
+    $(pages.program).hide();
 
     Display.draw_status();
 
@@ -152,6 +155,10 @@
       CurrentStatus.password = $(inputs.password).val();
       $(pages.control).show();
       $(pages.password).hide();
+      $(pages.program).show();
+
+      // Set password "obfuscated" in URL
+      window.location.hash = forge.util.encode64(CurrentStatus.password);
 
       // Reset errors
       Display.request_error(false);
@@ -171,6 +178,13 @@
       }
     });
     $(inputs.password).focus();
+
+    // Do we have an hash already? Use it as a password. Give the ability to
+    // bookmark it with the password
+    if (window.location.hash) {
+      $(inputs.password).val( forge.util.decode64(window.location.hash.substring(1)) );
+      $(controls.password).trigger('click');
+    }
 
   };
 
@@ -729,9 +743,11 @@
     reload : function() {
 
       $(inputs.password).val('');
+      window.location.hash = '';
 
       $(pages.control).hide();
       $(pages.password).show();
+      $(pages.program).hide();
 
       // end all loops
       clearTimeout(Control.read_status_timeout);
