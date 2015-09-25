@@ -61,6 +61,8 @@ class PiHeat(Daemon):
     self._heating_status_updated = False
     ## SHA256 hash of encryption password
     self._password_hash = None
+    ## Cleartext password
+    self._password = None
     ## Tolerance (in msec) between message's declared timestamp and server's timestamp
     self._tolerance_ms = 15000
     ## Control file for the heating switch (we write 0 or 1 to this file)
@@ -71,8 +73,8 @@ class PiHeat(Daemon):
     self._override_program = None
     ## Never touched heating status?
     self._heating_status_firsttime = True
-    ## Last command unique ID
-    self._lastcmd_id = None
+    ## Last command unique ID (string)
+    self._lastcmd_id = 'saved_configuration'
 
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
@@ -124,14 +126,39 @@ class PiHeat(Daemon):
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
       self._switch_file = str( jsconf['switch_file'] )
-
+      self._program = jsconf.get('program', [])
+      self._override_program = jsconf.get('override_program', None)
+      self._password = str(jsconf['password'])
       hashfunc = SHA256.new()
-      hashfunc.update( str(jsconf['password']) )
+      hashfunc.update( self._password )
       self._password_hash = hashfunc.digest()
     except (ValueError, KeyError) as e:
       logging.critical('invalid or missing value in configuration: %s' % e)
       return False
 
+    return True
+
+
+  ## Save configuration, if possible.
+  #
+  #  @return True on success.
+  def save_conf(self):
+    try:
+      open(self._conffile, 'w').write(json.dumps({
+        'msg_expiry_s': self._msg_expiry_s,
+        'cmd_expiry_s': self._cmd_expiry_s,
+        'thingid': self._thingid,
+        'thingname': self._thingname,
+        'get_commands_every_s': self._get_commands_every_s,
+        'send_status_every_s': self._send_status_every_s,
+        'switch_file': self._switch_file,
+        'program': self._program,
+        'override_program': self._override_program,
+        'password': self._password
+      }, indent=2))
+    except IOError as e:
+      logging.critical('cannot save configuration, check permissions: %s' % e)
+      return False
     return True
 
 
@@ -240,9 +267,22 @@ class PiHeat(Daemon):
                 logging.debug('found valid command')
                 logging.debug(json.dumps(msg, indent=2))
 
+                save = False
+                if msg['override_program'] != self._override_program:
+                  save = True
+                if msg['program'] != self._program:
+                  save = True
+                lid = msg['id']
+
                 self._override_program = msg['override_program']
                 self._program = msg['program']
-                self._lastcmd_id = msg['id']
+                self._lastcmd_id = lid
+
+                if save:
+                  if self.save_conf():
+                    logging.info('new configuration saved')
+                  else:
+                    logging.error('cannot save new configuration')
 
                 break
 
