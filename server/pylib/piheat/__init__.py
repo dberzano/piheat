@@ -154,7 +154,8 @@ class PiHeat(Daemon):
         'switch_file': self._switch_file,
         'program': self._program,
         'override_program': self._override_program,
-        'password': self._password
+        'password': self._password,
+        'last_saved': str(TimeStamp())
       }, indent=2))
     except IOError as e:
       logging.critical('cannot save configuration, check permissions: %s' % e)
@@ -210,6 +211,7 @@ class PiHeat(Daemon):
   def get_latest_command(self):
 
     logging.debug('checking for commands')
+    skipped = 0
 
     try:
       # timeout=(connect timeout, read timeout) in seconds
@@ -241,7 +243,7 @@ class PiHeat(Daemon):
             nonce_is_unique = True
 
             for ridx, ritem in reversed( list(enumerate(r.json()['with']))[idx+1:] ):
-              if nonce == ritem['content']['nonce']:
+              if 'nonce' in ritem['content'] and nonce == ritem['content']['nonce']:
                 nonce_is_unique = False
                 break
 
@@ -293,18 +295,21 @@ class PiHeat(Daemon):
 
         except (KeyError, TypeError) as e:
           logging.debug('error parsing, skipped: %s' % e)
+          skipped = skipped+1
           pass
 
     except Exception as e:
       logging.error('error parsing response: %s' % e)
       return False
 
+    if skipped > 0:
+      logging.warning('invalid messages skipped: %d' % skipped)
     return True
 
 
   ## Sends status update.
   #
-  #  @return  True on success, False if it fails
+  #  @return True on success, False if it fails
   def send_status_update(self):
 
     if self.heating_status:
@@ -338,6 +343,32 @@ class PiHeat(Daemon):
       return False
 
     logging.info('status update sent (status is %s)' % status_str)
+    return True
+
+
+  ## Sends a command to itself.
+  #
+  #  @return True on success, False if it fails
+  def send_command(self):
+    raw = { "type": "command",
+            "id": base64.b64encode(Random.new().read(30)),
+            "timestamp": str(TimeStamp()),
+            "program": self._program,
+            "from": "myself",
+            "override_program": self._override_program }
+    logging.debug("sending command: %s" % json.dumps(raw, indent=2))
+    payload = self.encrypt_msg(raw)
+    try:
+      r = requests.post("https://dweet.io/dweet/for/%s" % self._thingid,
+                        params=payload)
+    except requests.exceptions.RequestException as e:
+      logging.error("failed to send command: %s" % e)
+      return False
+    if r.status_code != 200:
+      logging.error("invalid status code received while sending command: %d" % r.status_code)
+      return False
+    logging.info("command sent")
+    self._lastcmd_id = raw["id"]
     return True
 
 
@@ -468,6 +499,8 @@ class PiHeat(Daemon):
             # Overrides are < 24 h
             logging.debug("Override has expired, deleting")
             self._override_program = None
+            self.send_command()
+            self.save_conf()
         else:
           logging.debug("No override set")
 
