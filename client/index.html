@@ -42,7 +42,6 @@
     <script src="js/jquery-clockpicker.min.js"></script>
 
     <!-- My script -->
-    <script src="js/private-config.js"></script>
     <script src="js/misc.js"></script>
 
     <!-- For mobile devices -->
@@ -62,11 +61,24 @@
 
       <div class="container text-center" id="page-password">
 
-        <p class="piheat-bottomspace lead">Type password to proceed</p>
+        <p class="piheat-bottomspace lead">Thing ID</p>
 
         <div class="row piheat-bottomspace">
-          <div class="col-xs-8 col-xs-offset-2 col-sm-6 col-sm-offset-3">
-            <input type="password" id="input-password" class="form-control">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <input type="text" id="input-thingid" class="form-control" placeholder="Your appliance's ID" aria-describedby="label-thingid">
+          </div>
+        </div>
+
+        <p class="piheat-bottomspace lead">Password</p>
+
+        <div class="row piheat-bottomspace">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <div class="input-group">
+              <input type="password" id="input-password" class="form-control" placeholder="Your password" aria-describedby="label-password">
+              <span class="input-group-addon">
+                <input type="checkbox" id="input-savepassword" checked> Save
+              </span>
+            </div>
           </div>
         </div>
 

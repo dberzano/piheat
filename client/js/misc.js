@@ -2,7 +2,7 @@
 /// @author Dario Berzano <dario.berzano@gmail.com>
 /// Remote heating control for Raspberry Pi: client scripts
 
-(function($, cfg) {
+(function($) {
 
   var heating_status = {
     'on': '#heating-status-on',
@@ -56,7 +56,9 @@
   }
 
   var inputs = {
-    'password': '#input-password'
+    'password': '#input-password',
+    'thingid': '#input-thingid',
+    'savepassword': '#input-savepassword'
   }
 
   var texts = {
@@ -76,7 +78,8 @@
   /// Current status and expected commands
   var CurrentStatus = {
     when: null,
-    password : null,
+    thingid: null,
+    password: null,
     debug: false,
     tolerance_ms: 15000,
     expect_cmd_result: false,
@@ -96,52 +99,37 @@
     cmd_id: null,
   };
 
-  var check_config = function() {
-    if (cfg === null) {
-      return 'JSON configuration variable <b>piheat_config</b> not found';
-    }
-    else if (!cfg.thingid) {
-      return '<b>thingid</b> is mandatory';
-    }
-    else if (isNaN(parseInt(cfg.default_msg_expiry_s)) ||
-      parseInt(cfg.default_msg_expiry_s) < 5) {
-        return '<b>default_msg_expiry_s</b> must be set to no less than 5 seconds';
-    }
-    else if (isNaN(parseInt(cfg.default_msg_update_s)) ||
-      parseInt(cfg.default_msg_update_s) < 5) {
-        return '<b>default_msg_update_s</b> must be set to no less than 5 seconds';
-    }
-    return null;
-  };
-
   var init = function() {
 
-    var check_config_result = check_config();
-    if (check_config_result != null) {
-      // found errors in configuration
-      $(texts.errors_title).text('Configuration error');
-      $(texts.errors).html( check_config_result );
-      $(pages.control).hide();
-      $(pages.password).hide();
-      $(pages.program).hide();
-      $(pages.errors).show();
-      return;
+    cfg = null;
+    try {
+      cfg = eval('('+forge.util.decode64(window.location.hash.substring(1))+')');
+      Logger.log("init", "Configuration: " + JSON.stringify(cfg));
+    }
+    catch (e) {
+      cfg = {};
+      Logger.log("init", "Cannot parse: " + e);
     }
 
-    CurrentStatus.msg_expiry_s = cfg.default_msg_expiry_s;
-    Logger.log('init', 'initial message expiry set to ' + cfg.default_msg_expiry_s + ' seconds');
+    showCfg = false;
+    try {
+      CurrentStatus.password = cfg.password.toString();
+      $(inputs.password).val(CurrentStatus.password);
+    }
+    catch (e) { showCfg = true; }
 
-    CurrentStatus.msg_update_s = cfg.default_msg_update_s;
-    Logger.log('init', 'initial message update set to ' + cfg.default_msg_update_s + ' seconds');
+    try {
+      CurrentStatus.thingid = cfg.thingid.toString();
+      $(inputs.thingid).val(CurrentStatus.thingid);
+    }
+    catch (e) { showCfg = true; }
 
-    CurrentStatus.name = cfg.thingid;
-
-    $(pages.control).hide();
-    $(pages.password).show();
-    $(pages.errors).hide();
-    $(pages.program).hide();
-
-    Display.draw_status();
+    CurrentStatus.msg_expiry_s = 1000;
+    Logger.log('init', 'initial message expiry set to ' + CurrentStatus.msg_expiry_s + ' seconds');
+    CurrentStatus.msg_update_s = 10;
+    Logger.log('init', 'initial message update set to ' + CurrentStatus.msg_update_s + ' seconds');
+    CurrentStatus.name = CurrentStatus.thingid;
+    CurrentStatus.password = cfg.password;
 
     // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
@@ -163,17 +151,27 @@
 
       // Password button pressed
       CurrentStatus.password = $(inputs.password).val();
+      CurrentStatus.thingid = $(inputs.thingid).val();
       $(pages.control).show();
       $(pages.password).hide();
       $(pages.program).show();
 
-      // Set password "obfuscated" in URL
-      window.location.hash = forge.util.encode64(CurrentStatus.password);
+      // Set hash
+      cfg = {};
+      cfg.thingid = CurrentStatus.thingid;
+      if ($(inputs.savepassword).prop("checked")) {
+        cfg.password = CurrentStatus.password;
+      }
+      $(texts.thingname).text(CurrentStatus.thingid);
+      Logger.log("init", "Saving this config in hash: " + JSON.stringify(cfg));
+      window.location.hash = forge.util.encode64(JSON.stringify(cfg));
 
       // Reset errors
       Display.request_error(false);
       Display.updated(false, false);
       Display.draw_programs();
+
+      Display.draw_status();
 
       // Commence loops
       Control.read_status_loop();
@@ -189,10 +187,14 @@
     });
     $(inputs.password).focus();
 
-    // Do we have an hash already? Use it as a password. Give the ability to
-    // bookmark it with the password
-    if (window.location.hash) {
-      $(inputs.password).val( forge.util.decode64(window.location.hash.substring(1)) );
+    $(pages.control).hide();
+    $(pages.password).show();
+    $(pages.program).hide();
+    $(pages.errors).hide();
+
+    // Password already set in configuration: don't prompt and use it
+    if (!showCfg) {
+      $(inputs.password).val(CurrentStatus.password);
       $(controls.password).trigger('click');
     }
 
@@ -614,7 +616,7 @@
 
       Display.updating();
 
-      $.get('https://dweet.io/get/dweets/for/' + cfg.thingid)
+      $.get('https://dweet.io/get/dweets/for/' + CurrentStatus.thingid)
         .done(function(data) {
 
           var now = new Date();
@@ -821,7 +823,7 @@
                   id: forge.util.encode64(forge.random.getBytesSync(30)) }
       Logger.log('Control.req', 'sending request: ' + JSON.stringify(content));
       $.post(
-        'https://dweet.io/dweet/for/' + cfg.thingid,
+        'https://dweet.io/dweet/for/' + CurrentStatus.thingid,
         Cipher.encrypt(content)
       )
         .fail(function() {
@@ -842,4 +844,4 @@
   // entry point
   $(document).ready(init);
 
-})(jQuery, (typeof piheat_config !== 'undefined') ? piheat_config : null);
+})(jQuery);
