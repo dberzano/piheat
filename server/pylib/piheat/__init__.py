@@ -383,11 +383,14 @@ class PiHeat(Daemon):
 
 
   ## True if the given "time" (hours, minutes) is included within the interval.
-  #  If begin < end assumes different days.
+  #  If begin < end assumes different days. If begin or end are < 0, assume we
+  #  are always in the interval.
   #
   #  @return A boolean
   @staticmethod
   def tminc(hm, beg, end):
+    if beg < 0 or end < 0:
+      return True
     if beg < end:
       return beg <= hm and hm < end
     else:

@@ -205,6 +205,10 @@
       a = begin.getUTCHours()*100 + begin.getUTCMinutes();
       b = end.getUTCHours()*100 + end.getUTCMinutes();
       return { begin: a, end: b };
+    },
+
+    always : function() {
+      return { begin: -1, end: -1 };
     }
 
   };
@@ -373,17 +377,25 @@
           $(CurrentStatus.override_program.status ? heating_override.on : heating_override.off)
             .show();
 
-          d = new Date();
-          d.setUTCHours(parseInt(CurrentStatus.override_program.end/100));
-          d.setUTCMinutes(CurrentStatus.override_program.end%100);
-          dstr = d.getMinutes().toString();
-          if (dstr.length < 2) dstr = "0"+dstr;
-          dstr = d.getHours() + ":" + dstr;
-
-          $(heating_override.hm).text(dstr).show();
-
           Logger.log('Display.draw_status', 'Override: ' + JSON.stringify(CurrentStatus.override_program) );
-          Logger.log('Display.draw_status', 'Override: ' + d );
+
+          if (CurrentStatus.override_program.begin < 0 || CurrentStatus.override_program.end < 0) {
+            // Permanent override
+            Logger.log('Display.draw_status', 'Permanent override');
+            $(heating_override.hm).text('forever').show();
+          }
+          else {
+            // Temporary override
+            d = new Date();
+            d.setUTCHours(parseInt(CurrentStatus.override_program.end/100));
+            d.setUTCMinutes(CurrentStatus.override_program.end%100);
+            dstr = d.getMinutes().toString();
+            if (dstr.length < 2) dstr = "0"+dstr;
+            dstr = d.getHours() + ":" + dstr;
+
+            $(heating_override.hm).text(dstr).show();
+            Logger.log('Display.draw_status', 'Override until: ' + d );
+          }
         }
         else {
           $(control_containers.cancel).hide();
@@ -750,11 +762,7 @@
     },
 
     turn_off : function() {
-      now = new Date();
-      later = new Date(now);
-      later.setMinutes(later.getMinutes()-1)
-      later.setHours(later.getHours()+24)
-      ovr = Timespan.create(now, later);
+      ovr = Timespan.always();
       ovr.status = false;
       CurrentStatus.override_program = ovr;
       Control.req();

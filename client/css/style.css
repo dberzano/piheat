@@ -45,6 +45,11 @@ div#piheat-program {
   padding-right: 3px !important;
 }
 
+#heating-override-on .text-success,
+#heating-override-off .text-danger {
+  font-weight: bold;
+}
+
 .prog-row {
   margin-bottom: 10px;
 }
