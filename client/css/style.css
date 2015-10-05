@@ -6,23 +6,81 @@
 
 .piheat-header h1 {
   color: white;
+  font-weight: lighter;
+  margin-top: 6px;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  font-size: 200%;
+}
+
+.piheat-header h1 #text-thingname {
+  font-weight: 200;
 }
 
 .piheat-header p {
   color: #cdbfe3;
 }
 
+#heating-status {
+  font-size: 170%;
+}
+
 .piheat-bottomspace {
   margin-bottom: 20px;
+}
+
+#heating-override {
+  margin-top: -15px;
+  font-weight: normal;
+  color: #808080;
+}
+
+#page-control .btn-group {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+#page-control .btn-group {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .piheat-topspace {
   margin-top: 20px;
 }
 
+div#piheat-program {
+  margin-top: 20px;
+}
+
+.row-no-padding [class*="col-"] {
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+#heating-override-on .text-success,
+#heating-override-off .text-danger {
+  font-weight: bold;
+}
+
+.prog-row {
+  margin-bottom: 10px;
+}
+
+#prog-empty {
+  font-size: 150%;
+  color: #c0c0c0;
+  text-align: center;
+}
+
 .piheat-credits {
   margin-top: 40px;
   color: #c0c0c0;
+  font-size: 90%;
+}
+
+#control-container-schedule {
+  margin-top: 10px;
 }
 
 .piheat-credits a#piheat-link {

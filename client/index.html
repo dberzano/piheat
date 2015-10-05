@@ -35,8 +35,13 @@
     <script src="js/bootstrap.min.js"></script>
     <!-- <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script> -->
 
+    <!-- Clockpicker -->
+    <link rel="stylesheet" href="css/bootstrap-clockpicker.min.css">
+    <link rel="stylesheet" href="css/jquery-clockpicker.min.css">
+    <script src="js/bootstrap-clockpicker.min.js"></script>
+    <script src="js/jquery-clockpicker.min.js"></script>
+
     <!-- My script -->
-    <script src="js/private-config.js"></script>
     <script src="js/misc.js"></script>
 
     <!-- For mobile devices -->
@@ -47,8 +52,12 @@
 
     <div class="piheat-header">
       <div class="container">
-        <h1>Pi Heat</h1>
-        <p><span id="text-thingname">thing name</span></p>
+        <div class="row">
+          <div class="col-xs-12
+                      col-sm-10 col-sm-offset-1">
+            <h1><span id="text-thingname">thing name</span> heating</h1>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -56,11 +65,24 @@
 
       <div class="container text-center" id="page-password">
 
-        <p class="piheat-bottomspace lead">Type password to proceed</p>
+        <p class="piheat-bottomspace lead">Thing ID</p>
 
         <div class="row piheat-bottomspace">
-          <div class="col-xs-10 col-xs-offset-1 col-sm-6 col-sm-offset-3">
-            <input type="password" id="input-password" class="form-control">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <input type="text" id="input-thingid" class="form-control" placeholder="Your appliance's ID" aria-describedby="label-thingid">
+          </div>
+        </div>
+
+        <p class="piheat-bottomspace lead">Password</p>
+
+        <div class="row piheat-bottomspace">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <div class="input-group">
+              <input type="password" id="input-password" class="form-control" placeholder="Your password" aria-describedby="label-password">
+              <span class="input-group-addon">
+                <input type="checkbox" id="input-savepassword" checked> Save
+              </span>
+            </div>
           </div>
         </div>
 
@@ -72,22 +94,35 @@
 
       <div class="container text-center" id="page-control">
 
-        <p class="piheat-bottomspace lead">Heating is
+        <p class="piheat-bottomspace" id="heating-status">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
           <span id="heating-status-unknown" class="text-warning">unknown</span>
         </p>
 
+        <p id="heating-override" class="piheat-bottomspace">
+          <!-- override status -->
+          <span id="heating-override-on" class="text-success">program ignored: heating <span class="text-success">on</span> until <span class="heating-override-until">XX:XX</span></span>
+          <span id="heating-override-off" class="text-danger">program ignored: heating <span class="text-danger">off</span> until <span class="heating-override-until">XX:XX</span></span>
+          <span id="heating-override-none">no override, considering program</span>
+        </p>
+
         <div class="piheat-bottomspace">
 
           <!-- turn on button -->
           <div id="control-container-turnon" class="btn-group btn-group-lg" role="group">
-            <button type="button" id="control-turnon" class="btn btn-success">Turn on</button>
+            <button style="width: 120px" type="button" id="control-turnon" class="btn btn-success"><span class="glyphicon glyphicon-fire"></span> for 2h</button>
           </div>
+
           <!-- turn off button -->
           <div id="control-container-turnoff" class="btn-group btn-group-lg" role="group">
-            <button type="button" id="control-turnoff" class="btn btn-danger">Turn off</button>
+            <button style="width: 120px" type="button" id="control-turnoff" class="btn btn-danger"><span class="glyphicon glyphicon-off"></span> forever</button>
+          </div>
+
+          <!-- cancel -->
+          <div id="control-container-cancel" class="btn-group btn-group-lg" role="group">
+            <button style="width: 120px" type="button" id="control-cancel" class="btn btn-warning"><span class="glyphicon glyphicon-time"></span> program</button>
           </div>
 
           <!-- reload page button -->
@@ -117,7 +152,7 @@
           &nbsp;<span id="update-status-updating" class="glyphicon glyphicon-refresh" aria-hidden="true"></span>&nbsp;
         </p>
 
-      </div>
+      </div><!-- /.piheat-bottomspace -->
 
       <div class="container text-center" id="page-errors">
         <div class="row">
@@ -141,12 +176,76 @@
         </div>
       </div>
 
-      <div class="container text-center piheat-credits">
+      <!-- Program times -->
+      <div class="container" id="page-program">
+
+        <div class="row">
+          <div class="col-xs-12 col-sm-6 col-sm-offset-3">
+            <div class="panel panel-info" id="piheat-program">
+
+              <div class="panel-heading text-center"></div>
+
+              <div class="panel-body">
+
+                <!-- automatically generated -->
+                <div id="piheat-program-content">
+                </div>
+
+                <!-- send programs -->
+                <div class="text-center" id="control-container-schedule">
+                  <div class="btn-group" role="group">
+                    <button type="button" id="control-schedule" class="btn btn-info"><span class="glyphicon glyphicon-ok"></span> Set</button>
+                  </div>
+                </div>
+
+                <!-- empty content (template, hidden) -->
+                <div id="prog-empty" style="display:none">
+                  No program
+                </div>
+
+                <!-- remove button (template, hidden) -->
+                <div class="btn-group btn-group-xs prog-remove" id="prog-rmbtn-tpl" style="display:none" role="group">
+                  <button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
+                </div>
+
+                <!-- add program (template, hidden) -->
+                <div class="row row-no-padding" id="piheat-program-template" style="display:none">
+                  <div class="col-xs-5">
+                    <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
+                      <input type="text" class="prog-begin form-control" value="00:00">
+                      <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-time"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-xs-5">
+                    <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
+                      <input type="text" class="prog-end form-control" value="23:59">
+                      <span class="input-group-addon">
+                        <span class="glyphicon glyphicon-time"></span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="col-xs-2">
+                    <div class="btn-group btn-group-md prog-new" role="group">
+                      <button type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+                    </div>
+                  </div>
+                </div><!-- /.row -->
+
+              </div><!-- /.panel-body -->
+
+            </div><!-- /.panel -->
+          </div><!-- /.col -->
+        </div><!-- /.row -->
+      </div><!-- /.container -->
+
+      <div class="container text-center piheat-credits piheat-bottomspace">
         <a href="https://github.com/dberzano/piheat" id="piheat-link">Pi Heat</a> /
         <a href="http://getbootstrap.com/">Bootstrap</a> /
         <a href="http://dweet.io">dweet.io</a> /
-        <a href="http://glyphicons.com/">Glyphicons</a> /
-        <a href="https://github.com/digitalbazaar/forge">Forge</a>
+        <a href="https://github.com/digitalbazaar/forge">Forge</a> /
+        <a href="https://github.com/weareoutman/clockpicker">Clockpicker</a>
       </div>
 
     </div><!-- /.master-container -->

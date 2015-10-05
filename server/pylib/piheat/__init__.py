@@ -57,16 +57,24 @@ class PiHeat(Daemon):
     self._send_status_every_s = None
     ## Current heating status (boolean)
     self._heating_status = False
-    ## Latest command to process: `True` for turning on, `False` for turning off (default)
-    self._desired_heating_status = False
-    ## When latest command was issued (a `TimeStamp` instance)
-    self._desired_heating_status_ts = None
+    ## True if current heating status has been just updated
+    self._heating_status_updated = False
     ## SHA256 hash of encryption password
     self._password_hash = None
+    ## Cleartext password
+    self._password = None
     ## Tolerance (in msec) between message's declared timestamp and server's timestamp
     self._tolerance_ms = 15000
     ## Control file for the heating switch (we write 0 or 1 to this file)
     self._switch_file = None
+    ## Turn on/turn off programs
+    self._program = []
+    ## Override current program
+    self._override_program = None
+    ## Never touched heating status?
+    self._heating_status_firsttime = True
+    ## Last command unique ID (string)
+    self._lastcmd_id = 'saved_configuration'
 
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
@@ -118,14 +126,40 @@ class PiHeat(Daemon):
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
       self._switch_file = str( jsconf['switch_file'] )
-
+      self._program = jsconf.get('program', [])
+      self._override_program = jsconf.get('override_program', None)
+      self._password = str(jsconf['password'])
       hashfunc = SHA256.new()
-      hashfunc.update( str(jsconf['password']) )
+      hashfunc.update( self._password )
       self._password_hash = hashfunc.digest()
     except (ValueError, KeyError) as e:
       logging.critical('invalid or missing value in configuration: %s' % e)
       return False
 
+    return True
+
+
+  ## Save configuration, if possible.
+  #
+  #  @return True on success.
+  def save_conf(self):
+    try:
+      open(self._conffile, 'w').write(json.dumps({
+        'msg_expiry_s': self._msg_expiry_s,
+        'cmd_expiry_s': self._cmd_expiry_s,
+        'thingid': self._thingid,
+        'thingname': self._thingname,
+        'get_commands_every_s': self._get_commands_every_s,
+        'send_status_every_s': self._send_status_every_s,
+        'switch_file': self._switch_file,
+        'program': self._program,
+        'override_program': self._override_program,
+        'password': self._password,
+        'last_saved': str(TimeStamp())
+      }, indent=2))
+    except IOError as e:
+      logging.critical('cannot save configuration, check permissions: %s' % e)
+      return False
     return True
 
 
@@ -140,6 +174,10 @@ class PiHeat(Daemon):
   #  @param status True for on, False for off
   @heating_status.setter
   def heating_status(self, status):
+    if status == self._heating_status and not self._heating_status_firsttime:
+      logging.debug('heating status unchanged')
+      return True
+    self._heating_status_firsttime = False
     if status:
       status_str = 'on'
       status_file = '1'
@@ -154,39 +192,32 @@ class PiHeat(Daemon):
       logging.error('cannot change status: %s' % e)
       return False
     self._heating_status = status
+    self._heating_status_updated = True
     return True
 
 
-  ## Gets the desired heating status.
-  @property
-  def desired_heating_status(self):
-    return self._desired_heating_status
-
-
-  ## Gets a `TimeStamp` object corresponding to when the desired heating status was set.
-  @property
-  def desired_heating_status_ts(self):
-    return self._desired_heating_status_ts
-
-
-  ## Sets the desired heating status.
+  ## Returns True if heating status was just updated, and immediately set the
+  #  value to false.
   #
-  #  @param status_with_timestamp A tuple with the status and the timestamp
-  @desired_heating_status.setter
-  def desired_heating_status(self, status_with_timestamp):
-    self._desired_heating_status, self._desired_heating_status_ts = status_with_timestamp
+  #  @return True if heating status was just updated, false after first call
+  @property 
+  def heating_status_updated(self):
+    x = self._heating_status_updated
+    self._heating_status_updated = False
+    return x
 
 
   ## Get latest command via dweet.io.
   def get_latest_command(self):
 
     logging.debug('checking for commands')
+    skipped = 0
 
     try:
       # timeout=(connect timeout, read timeout) in seconds
       r = requests.get(
-        'https://dweet.io/get/dweets/for/%s' % self._thingid,
-        timeout=(15,15))
+        'https://dweet.io/get/dweets/for/%s' % self._thingid)
+        #timeout=(15,15))
     except requests.exceptions.RequestException as e:
       logging.error('failed to get latest commands: %s' % e)
       return False
@@ -197,7 +228,7 @@ class PiHeat(Daemon):
 
     try:
 
-      for idx, item in enumerate( r.json()['with'] ):
+      for idx,item in enumerate( r.json()['with'] ):
 
         try:
 
@@ -212,7 +243,7 @@ class PiHeat(Daemon):
             nonce_is_unique = True
 
             for ridx, ritem in reversed( list(enumerate(r.json()['with']))[idx+1:] ):
-              if nonce == ritem['content']['nonce']:
+              if 'nonce' in ritem['content'] and nonce == ritem['content']['nonce']:
                 nonce_is_unique = False
                 break
 
@@ -235,13 +266,27 @@ class PiHeat(Daemon):
 
               elif msg['type'].lower() == 'command':
 
-                cmd = msg['command'].lower()
-                if cmd == 'turnon':
-                  self.desired_heating_status = True, msg_ts
-                  break
-                elif cmd == 'turnoff':
-                  self.desired_heating_status = False, msg_ts
-                  break
+                logging.debug('found valid command')
+                logging.debug(json.dumps(msg, indent=2))
+
+                save = False
+                if msg['override_program'] != self._override_program:
+                  save = True
+                if msg['program'] != self._program:
+                  save = True
+                lid = msg['id']
+
+                self._override_program = msg['override_program']
+                self._program = msg['program']
+                self._lastcmd_id = lid
+
+                if save:
+                  if self.save_conf():
+                    logging.info('new configuration saved')
+                  else:
+                    logging.error('cannot save new configuration')
+
+                break
 
           else:
             # messages from now on are too old, no need to parse the rest
@@ -250,18 +295,21 @@ class PiHeat(Daemon):
 
         except (KeyError, TypeError) as e:
           logging.debug('error parsing, skipped: %s' % e)
+          skipped = skipped+1
           pass
 
     except Exception as e:
       logging.error('error parsing response: %s' % e)
       return False
 
+    if skipped > 0:
+      logging.warning('invalid messages skipped: %d' % skipped)
     return True
 
 
   ## Sends status update.
   #
-  #  @return  True on success, False if it fails
+  #  @return True on success, False if it fails
   def send_status_update(self):
 
     if self.heating_status:
@@ -272,14 +320,19 @@ class PiHeat(Daemon):
 
     now = TimeStamp()
     try:
-      payload = self.encrypt_msg({
+      raw = {
         'type': 'status',
         'timestamp': str(now),  # ISO UTC
-        'status': status_str,
+        'status': self.heating_status,
         'msgexp_s': self._msg_expiry_s,
         'msgupd_s': self._send_status_every_s,
-        'name': self._thingname
-      })
+        'program': self._program,
+        'override_program': self._override_program,
+        'name': self._thingname,
+        'lastcmd_id': self._lastcmd_id
+      }
+      logging.debug('message: ' + json.dumps(raw, indent=2))
+      payload = self.encrypt_msg(raw)
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
     except requests.exceptions.RequestException as e:
       logging.error('failed to send update: %s' % e)
@@ -290,6 +343,32 @@ class PiHeat(Daemon):
       return False
 
     logging.info('status update sent (status is %s)' % status_str)
+    return True
+
+
+  ## Sends a command to itself.
+  #
+  #  @return True on success, False if it fails
+  def send_command(self):
+    raw = { "type": "command",
+            "id": base64.b64encode(Random.new().read(30)),
+            "timestamp": str(TimeStamp()),
+            "program": self._program,
+            "from": "myself",
+            "override_program": self._override_program }
+    logging.debug("sending command: %s" % json.dumps(raw, indent=2))
+    payload = self.encrypt_msg(raw)
+    try:
+      r = requests.post("https://dweet.io/dweet/for/%s" % self._thingid,
+                        params=payload)
+    except requests.exceptions.RequestException as e:
+      logging.error("failed to send command: %s" % e)
+      return False
+    if r.status_code != 200:
+      logging.error("invalid status code received while sending command: %d" % r.status_code)
+      return False
+    logging.info("command sent")
+    self._lastcmd_id = raw["id"]
     return True
 
 
@@ -374,6 +453,21 @@ class PiHeat(Daemon):
     return True
 
 
+  ## True if the given "time" (hours, minutes) is included within the interval.
+  #  If begin < end assumes different days. If begin or end are < 0, assume we
+  #  are always in the interval.
+  #
+  #  @return A boolean
+  @staticmethod
+  def tminc(hm, beg, end):
+    if beg < 0 or end < 0:
+      return True
+    if beg < end:
+      return beg <= hm and hm < end
+    else:
+      return hm >= beg or hm < end
+
+
   ## Program's entry point, overridden from the base Daemon class.
   #
   #  @return Always zero
@@ -381,37 +475,48 @@ class PiHeat(Daemon):
 
     self.init_log()
     if self.read_conf() == False:
-      # configuration error: exit
       return 1
 
     last_command_check_ts = 0
     last_status_update_ts = 0
+    last_status_change_ts = 0
     while True:
 
-      prev_desired_heating_status = self.desired_heating_status
-
-      # retrieve current command
+      # Retrieve latest command
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
         if self.get_latest_command():
           last_command_check_ts = int(time.time())
 
-      # check if heating status has expired (note: it is not superfluous, we must do it in case
-      # requests for new commands fail)
-      lastts = self.desired_heating_status_ts
-      if lastts is not None:
-        if (TimeStamp()-lastts).total_seconds() > self._cmd_expiry_s:
-          logging.warning('current heating command has expired: turning heating off')
-          self.desired_heating_status = False, None
+      # Change status according to programs and overrides
+      if int(time.time())-last_status_change_ts > 20:
+        hm = int(TimeStamp().get_formatted_str("%H%M"))
 
-      # change status
-      send_update_now = False
-      if prev_desired_heating_status != self._desired_heating_status:
-        if self.heating_status != self._desired_heating_status:
-          self.heating_status = self._desired_heating_status
-          send_update_now = True
+        if self._override_program:
+          logging.debug("An override is set: " + json.dumps(self._override_program))
+          if self.tminc(hm, self._override_program["begin"], self._override_program["end"]):
+            self.heating_status = self._override_program["status"]
+          elif hm > self._override_program["end"]:
+            # Overrides are < 24 h
+            logging.debug("Override has expired, deleting")
+            self._override_program = None
+            self.send_command()
+            self.save_conf()
+        else:
+          logging.debug("No override set")
 
-      # update status
-      if send_update_now or int(time.time())-last_status_update_ts > self._send_status_every_s:
+        if not self._override_program:
+          if self._program:
+            logging.debug("Programs are set: " + json.dumps(self._program))
+            self.heating_status = len([1 for p in self._program if self.tminc(hm, p["begin"], p["end"])]) > 0
+          else:
+            logging.debug("No program set")
+            self.heating_status = False
+
+        last_status_change_ts = int(time.time())
+
+      # Update status
+      if self.heating_status_updated or \
+         int(time.time())-last_status_update_ts > self._send_status_every_s:
         if self.send_status_update():
           last_status_update_ts = int(time.time())
 
