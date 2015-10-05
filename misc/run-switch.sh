@@ -3,7 +3,7 @@
 DEST=/opt/piheat/piheat
 PIDFILE=/tmp/rpi_switchctl.pid
 LOG=/tmp/rpi_switchctl.log
-PID=$(cat $PIDFILE)
+PID=$(cat $PIDFILE 2> /dev/null || echo 123456789)
 kill -0 $PID && false
 nohup $DEST/lowlevel/rpi_switchctl/rpi_switchctl.py \
   --file=/tmp/heat \

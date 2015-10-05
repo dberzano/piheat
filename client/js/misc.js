@@ -720,7 +720,7 @@
             CurrentStatus.program = NewStatus.program;
             CurrentStatus.override_program = NewStatus.override_program;
             CurrentStatus.cmd_id = NewStatus.cmd_id;
-            CurrentStatus.name = msg.name;
+            CurrentStatus.name = NewStatus.name;
             CurrentStatus.when = NewStatus.when;
           }
           else {
