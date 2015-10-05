@@ -6,10 +6,23 @@
 
 .piheat-header h1 {
   color: white;
+  font-weight: lighter;
+  margin-top: 6px;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  font-size: 200%;
+}
+
+.piheat-header h1 #text-thingname {
+  font-weight: 200;
 }
 
 .piheat-header p {
   color: #cdbfe3;
+}
+
+#heating-status {
+  font-size: 170%;
 }
 
 .piheat-bottomspace {
@@ -63,6 +76,7 @@ div#piheat-program {
 .piheat-credits {
   margin-top: 40px;
   color: #c0c0c0;
+  font-size: 90%;
 }
 
 #control-container-schedule {

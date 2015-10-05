@@ -52,8 +52,12 @@
 
     <div class="piheat-header">
       <div class="container">
-        <h1>Pi Heat</h1>
-        <p><span class="glyphicon glyphicon-home"></span> <span id="text-thingname">thing name</span></p>
+        <div class="row">
+          <div class="col-xs-12
+                      col-sm-10 col-sm-offset-1">
+            <h1><span id="text-thingname">thing name</span> heating</h1>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -90,7 +94,7 @@
 
       <div class="container text-center" id="page-control">
 
-        <p class="lead piheat-bottomspace">Heating is
+        <p class="piheat-bottomspace" id="heating-status">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
@@ -236,11 +240,10 @@
         </div><!-- /.row -->
       </div><!-- /.container -->
 
-      <div class="container text-center piheat-credits">
+      <div class="container text-center piheat-credits piheat-bottomspace">
         <a href="https://github.com/dberzano/piheat" id="piheat-link">Pi Heat</a> /
         <a href="http://getbootstrap.com/">Bootstrap</a> /
         <a href="http://dweet.io">dweet.io</a> /
-        <a href="http://glyphicons.com/">Glyphicons</a> /
         <a href="https://github.com/digitalbazaar/forge">Forge</a> /
         <a href="https://github.com/weareoutman/clockpicker">Clockpicker</a>
       </div>
