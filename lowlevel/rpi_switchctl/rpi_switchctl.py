@@ -3,8 +3,8 @@
 ## @file rpi_switchctl.py
 #  Controls turning on and off a relay connected to the Raspberry Pi's GPIO.
 #
-#  This program must be run as root, but it exposes a simple interface allowing non-root commands to
-#  interact with the switch.
+#  This program must be run as root, but it exposes a simple interface allowing
+#  non-root commands to interact with the switch.
 
 import RPi.GPIO as GPIO
 import sys, signal, os
@@ -47,7 +47,9 @@ def main(argv):
     GPIO.HIGH: 'high'
   }
 
-  opt,_ = getopt(argv, '', ['file=', 'user=', 'group=', 'mode=', 'pidfile=', 'pin=', 'on-is-high'])
+  opt,_ = getopt(argv, '',
+                 [ 'file=', 'user=', 'group=', 'mode=', 'pidfile=',
+                   'pin=', 'on-is-high' ])
 
   for k,v in opt:
     if k == '--file':
@@ -65,10 +67,6 @@ def main(argv):
     elif k == '--on-is-high':
       status_map['on'] = GPIO.HIGH
       status_map['off'] = GPIO.LOW
-
-  # Create the input file (~touch)
-  with open(conf['ctlfile'], 'w') as fp:
-    fp.write('0')  # off by default
 
   # Permissions for that file
   uid = -1
@@ -97,26 +95,28 @@ def main(argv):
 
     sleep(5)
 
-    with open(conf['ctlfile'], 'r') as fp:
-      newstatus = fp.read(1)
+    try:
+      with open(conf['ctlfile'], 'r') as fp:
+        newstatus = fp.read(1)
+      if newstatus not in ['0', '1']:
+        raise ValueError('invalid value %s' % newstatus)
+    except (IOError,ValueError) as e:
+      print 'error reading %s (%s), defaulting status to 0' % \
+            (conf["ctlfile"], str(e))
+      newstatus = '0'
+      with open(conf['ctlfile'], 'w') as fp:
+        fp.write(newstatus)
 
     if newstatus == '1':
       if pin_status == status_map['off']:
         pin_status = status_map['on']
         print 'turning on (pin %d => %s)' % (conf['pin'], gpio_status_name[pin_status])
         GPIO.output(conf['pin'], pin_status)
-    elif newstatus == '0':
+    else:
       if pin_status == status_map['on']:
         pin_status = status_map['off']
         print 'turning off (pin %d => %s)' % (conf['pin'], gpio_status_name[pin_status])
         GPIO.output(conf['pin'], pin_status)
-    else:
-      # Fix file content in case it contains garbage
-      with open(conf['ctlfile'], 'w') as fp:
-        if pin_status == status_map['off']:
-          fp.write('0')
-        else:
-          fp.write('1')
 
     # Interactive
     # print 'cmd> ',
