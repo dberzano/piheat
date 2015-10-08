@@ -31,6 +31,15 @@ The daemon will start shortly.
 Updates occur automatically. Whenever a new change occurs, it is automatically
 retrieved and applied.
 
+Usage
+-----
+
+Connect [here](http://cern.ch/dberzano/ph/), this is the client: you are
+prompted for the thing ID and the password. After entering them, you can
+bookmark the generated URL for subsequent connections.
+
+You can opt for not saving your password in the generated URL if you want.
+
 
 Allowed JSON messages
 ---------------------
