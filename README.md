@@ -66,9 +66,9 @@ Status messages are sent by the device to report current heating status.
   "msgupd_s": 123,
   "name": "thing's friendly name",
   "program": [ { "begin": 1234, "end": 1234 },
-               { "begin": 1345, "end": 1345 } ]
+               { "begin": 1345, "end": 1345 } ],
   "override_program": { "begin": 1345, "end": 1345, "status": true },
-  "lastcmd_id": "abcdef",
+  "lastcmd_id": "abcdef"
 }
 ```
 
@@ -96,14 +96,14 @@ Commands are sent by clients to control heating.
   "type": "command",
   "timestamp": "2014-07-30T21:06:15.600000Z",
   "program": [ { "begin": 1234, "end": 1234 },
-               { "begin": 1345, "end": 1345 } ]
+               { "begin": 1345, "end": 1345 } ],
   "override_program": { "begin": 1345, "end": 1345, "status": true },
   "id": "abcdef"
 }
 ```
 
-* `program`: see [#Status](Status)
-* `override_program`: see [#Status](Status)
+* `program`: *see [Status](#status)*
+* `override_program`: *see [Status](#status)*
 * `id`: a unique ID
 
 
