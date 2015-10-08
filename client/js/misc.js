@@ -131,6 +131,12 @@
     CurrentStatus.name = CurrentStatus.thingid;
     CurrentStatus.password = cfg.password;
 
+    // Reload current page when clicking on title
+    $(".piheat-header a").click(function(e){
+      location.reload();
+      return false;
+    });
+
     // actions for turn on/off buttons
     $(controls.turnon).click( Control.turn_on );
     $(controls.turnoff).click( Control.turn_off );
