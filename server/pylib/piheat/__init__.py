@@ -67,6 +67,9 @@ class PiHeat(Daemon):
     self._tolerance_ms = 15000
     ## Control file for the heating switch (we write 0 or 1 to this file)
     self._switch_file = None
+    ## File used for watchdog purposes. Create this file continuously, something else will delete
+    ## it. The absence of this file is an indicator of a hung daemon. Might be None
+    self._watchdog_file = None
     ## Turn on/turn off programs
     self._program = []
     ## Override current program
@@ -75,7 +78,12 @@ class PiHeat(Daemon):
     self._heating_status_firsttime = True
     ## Last command unique ID (string)
     self._lastcmd_id = 'saved_configuration'
-
+    ## Timeout (connect timeout, read timeout) in seconds for Python requests
+    self._requests_timeout = (15,15)
+    try:
+      try: requests.get("https://dweet.io", timeout=(1,1))
+      except ValueError: self._requests_timeout = 15
+    except requests.exceptions: pass
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
@@ -126,6 +134,7 @@ class PiHeat(Daemon):
       self._get_commands_every_s = int( jsconf['get_commands_every_s'] )
       self._send_status_every_s = int( jsconf['send_status_every_s'] )
       self._switch_file = str( jsconf['switch_file'] )
+      self._watchdog_file = jsconf.get('watchdog_file', None)
       self._program = jsconf.get('program', [])
       self._override_program = jsconf.get('override_program', None)
       self._password = str(jsconf['password'])
@@ -152,6 +161,7 @@ class PiHeat(Daemon):
         'get_commands_every_s': self._get_commands_every_s,
         'send_status_every_s': self._send_status_every_s,
         'switch_file': self._switch_file,
+        'watchdog_file': self._watchdog_file,
         'program': self._program,
         'override_program': self._override_program,
         'password': self._password,
@@ -214,10 +224,8 @@ class PiHeat(Daemon):
     skipped = 0
 
     try:
-      # timeout=(connect timeout, read timeout) in seconds
-      r = requests.get(
-        'https://dweet.io/get/dweets/for/%s' % self._thingid)
-        #timeout=(15,15))
+      r = requests.get("https://dweet.io/get/dweets/for/%s" % self._thingid,
+                       timeout=self._requests_timeout)
     except requests.exceptions.RequestException as e:
       logging.error('failed to get latest commands: %s' % e)
       return False
@@ -468,6 +476,17 @@ class PiHeat(Daemon):
       return hm >= beg or hm < end
 
 
+  ## Create the watchdog file with the current timestamp.
+  def watchdog(self):
+    if not self._watchdog_file: return
+    try:
+      with open(self._watchdog_file, "w") as fp:
+        logging.debug("writing watchdog %s" % self._watchdog_file)
+        fp.write(str(int(TimeStamp().get_timestamp_usec_utc())))
+    except IOError as e:
+      logging.error("cannot write watchdog file %s: %s" % (self._watchdog_file, str(e)))
+
+
   ## Program's entry point, overridden from the base Daemon class.
   #
   #  @return Always zero
@@ -486,6 +505,7 @@ class PiHeat(Daemon):
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
         if self.get_latest_command():
           last_command_check_ts = int(time.time())
+      self.watchdog()
 
       # Change status according to programs and overrides
       if int(time.time())-last_status_change_ts > 20:
@@ -519,6 +539,7 @@ class PiHeat(Daemon):
          int(time.time())-last_status_update_ts > self._send_status_every_s:
         if self.send_status_update():
           last_status_update_ts = int(time.time())
+      self.watchdog()
 
       time.sleep(1)
 
