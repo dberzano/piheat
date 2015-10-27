@@ -6,5 +6,6 @@
   "get_commands_every_s": 30,
   "send_status_every_s": 60,
   "password": "@THING_PASSWORD@",
-  "switch_file": "/tmp/heat"
+  "switch_file": "/tmp/heat",
+  "watchdog_file": "/tmp/piheat_watchdog"
 }
