@@ -75,7 +75,12 @@ class PiHeat(Daemon):
     self._heating_status_firsttime = True
     ## Last command unique ID (string)
     self._lastcmd_id = 'saved_configuration'
-
+    ## Timeout (connect timeout, read timeout) in seconds for Python requests
+    self._requests_timeout = (15,15)
+    try:
+      try: requests.get("https://dweet.io", timeout=(1,1))
+      except ValueError: self._requests_timeout = 15
+    except requests.exceptions: pass
 
   ## Initializes log facility. Logs both on stderr and syslog. Works on OS X and Linux.
   def init_log(self):
@@ -214,10 +219,8 @@ class PiHeat(Daemon):
     skipped = 0
 
     try:
-      # timeout=(connect timeout, read timeout) in seconds
-      r = requests.get(
-        'https://dweet.io/get/dweets/for/%s' % self._thingid)
-        #timeout=(15,15))
+      r = requests.get("https://dweet.io/get/dweets/for/%s" % self._thingid,
+                       timeout=self._requests_timeout)
     except requests.exceptions.RequestException as e:
       logging.error('failed to get latest commands: %s' % e)
       return False
