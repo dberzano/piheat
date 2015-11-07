@@ -1,20 +1,20 @@
-/// \class dht11
+/// \class dht22
 
-#include "dht11.h"
+#include "dht22.h"
 
 /// Constructor.
 ///
-/// \param pin Digital PIN assigned to this DHT11
+/// \param pin Digital PIN assigned to this DHT22
 /// \param histSz Number of history values to keep in memory
-dht11::dht11(int pin, size_t histSz) :
+dht22::dht22(int pin, size_t histSz) :
   mPin(pin), mHistSz(histSz), mHistIdx(0), mHistNelm(0),
-  mTemperature(DHT11_INVALID), mHumidity(DHT11_INVALID) {
+  mTemperature(DHT22_INVALID), mHumidity(DHT22_INVALID) {
   mHistTemp = new int[mHistSz];
   mHistHumi = new int[mHistSz];
 }
 
 /// Destructor.
-dht11::~dht11() {
+dht22::~dht22() {
   delete[] mHistTemp;
   delete[] mHistHumi;
 }
@@ -26,7 +26,7 @@ dht11::~dht11() {
 /// \param vals An array of int
 /// \param n Number of elements of the array to consider (must be > 0, unchecked)
 /// \param avgDec Pointer where to write the decimal part of the average
-int dht11::avg(int *vals, size_t n, int *avgDec) {
+int dht22::avg(int *vals, size_t n, int *avgDec) {
   int buf = 0.;
   int avgInt;
   for (size_t i=0; i<n; i++) {
@@ -41,43 +41,43 @@ int dht11::avg(int *vals, size_t n, int *avgDec) {
 
 /// Returns the averaged values of temperature from history.
 ///
-/// \return An int representing the temperature in °C, or `DHT11_INVALID` if history is empty.
+/// \return An int representing the temperature in °C, or `DHT22_INVALID` if history is empty.
 ///
 /// \param avgDec Pointer where to write the decimal part of the average
-int dht11::get_weighted_temperature(int *avgDec) {
+int dht22::get_weighted_temperature(int *avgDec) {
   if (mHistNelm == 0) {
-    return DHT11_INVALID;
+    return DHT22_INVALID;
   }
   return avg(mHistTemp, mHistNelm, avgDec);
 }
 
 /// Returns the averaged values of humidity from history.
 ///
-/// \return An int representing the humidity in %, or `DHT11_INVALID` if history is empty.
+/// \return An int representing the humidity in %, or `DHT22_INVALID` if history is empty.
 ///
 /// \param avgDec Pointer where to write the decimal part of the average
-int dht11::get_weighted_humidity(int *avgDec) {
+int dht22::get_weighted_humidity(int *avgDec) {
   if (mHistNelm == 0) {
-    return DHT11_INVALID;
+    return DHT22_INVALID;
   }
   return avg(mHistHumi, mHistNelm, avgDec);
 }
 
 /// Returns the last temperature value read.
 ///
-/// \return An int representing the temperature in °C, or `DHT11_INVALID` if no value was ever read.
-int dht11::get_last_temperature() {
+/// \return An int representing the temperature in °C, or `DHT22_INVALID` if no value was ever read.
+int dht22::get_last_temperature() {
   return mTemperature;
 }
 
 /// Returns the last humidity value read.
 ///
-/// \return An int representing the humidity in %, or `DHT11_INVALID` if no value was ever read.
-int dht11::get_last_humidity() {
+/// \return An int representing the humidity in %, or `DHT22_INVALID` if no value was ever read.
+int dht22::get_last_humidity() {
   return mHumidity;
 }
 
-/// Reads data from the DHT11.
+/// Reads data from the DHT22.
 ///
 /// On a successful read, values are stored in public members `temperature` and `humidity`. Plus,
 /// they are inserted in an array for computing the moving average for a weighted output.
@@ -85,8 +85,8 @@ int dht11::get_last_humidity() {
 /// On an unsuccessful read, `temperature`, `humidity` and the historic values are left untouched,
 /// *i.e.* the values obtained from the last successful read are stored.
 ///
-/// \return `DHT11_OK` when successful, one of the `DHT11_ERR_*` values on error.
-int dht11::read() {
+/// \return `DHT22_OK` when successful, one of the `DHT22_ERR_*` values on error.
+int dht22::read() {
 
   // Receive buffer
   uint8_t bits[5];
@@ -110,14 +110,14 @@ int dht11::read() {
   unsigned int loopCnt = 10000;
   while (digitalRead(mPin) == LOW) {
     if (loopCnt-- == 0) {
-      return DHT11_ERR_TMOUT;
+      return DHT22_ERR_TMOUT;
     }
   }
 
   loopCnt = 10000;
   while (digitalRead(mPin) == HIGH) {
     if (loopCnt-- == 0) {
-      return DHT11_ERR_TMOUT;
+      return DHT22_ERR_TMOUT;
     }
   }
 
@@ -127,7 +127,7 @@ int dht11::read() {
     loopCnt = 10000;
     while (digitalRead(mPin) == LOW) {
       if (loopCnt-- == 0) {
-        return DHT11_ERR_TMOUT;
+        return DHT22_ERR_TMOUT;
       }
     }
 
@@ -136,7 +136,7 @@ int dht11::read() {
     loopCnt = 10000;
     while (digitalRead(mPin) == HIGH) {
       if (loopCnt-- == 0) {
-        return DHT11_ERR_TMOUT;
+        return DHT22_ERR_TMOUT;
       }
     }
 
@@ -159,7 +159,7 @@ int dht11::read() {
 
   if (bits[4] != chksum) {
     // Checksums mismatch
-    return DHT11_ERR_CKSUM;
+    return DHT22_ERR_CKSUM;
   }
 
   // Everything OK: write output to the variables: bits[1] and bits[3] are always zero, therefore
@@ -179,5 +179,5 @@ int dht11::read() {
     mHistNelm++;
   }
 
-  return DHT11_OK;
+  return DHT22_OK;
 }

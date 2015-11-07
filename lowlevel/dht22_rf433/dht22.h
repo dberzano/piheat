@@ -1,5 +1,5 @@
-/// \class dht11
-/// \brief Read data from the DHT11 temperature and humidity sensor from an Arduino
+/// \class dht22
+/// \brief Read data from the DHT22 temperature and humidity sensor from an Arduino
 ///
 /// Whenever a read from sensor ends successfully, the latest values are stored, and also placed in
 /// an history: the history, of a user-configurable size, is used to smooth out fluctuations by
@@ -8,12 +8,12 @@
 /// Typical usage:
 ///
 /// ~~~{.cpp}
-/// #include "dht11.h"
+/// #include "dht22.h"
 ///
-/// dht11 myTempSensor(2 /* digi pin */, 10 /* hist size */);
+/// dht22 myTempSensor(2 /* digi pin */, 10 /* hist size */);
 ///
 /// void loop() {
-///   if ( myTempSensor.read() == DHT11_OK ) {
+///   if ( myTempSensor.read() == DHT22_OK ) {
 ///     Serial.println( myTempSensor.get_last_temperature() );
 ///     Serial.println( myTempSensor.get_last_humidity() );
 ///     Serial.println( myTempSensor.get_weighted_temperature(), 2 );
@@ -44,7 +44,7 @@
 /// Where:
 ///
 /// - `---` is data sent by the Arduino
-/// - `===` is data sent by the DHT11
+/// - `===` is data sent by the DHT22
 ///
 /// Breaking the cycle down:
 ///
@@ -61,16 +61,16 @@
 /// 4. always zero
 /// 5. sum of humidity and temperature (a simple checksum)
 ///
-/// Datasheet for DHT11 is [available here](http://www.micro4you.com/files/sensor/DHT11.pdf).
+/// Datasheet for DHT22 is [available here](http://www.micro4you.com/files/sensor/DHT22.pdf).
 ///
-/// Original version is [available here](http://playground.arduino.cc/Main/DHT11Lib).
+/// Original version is [available here](http://playground.arduino.cc/Main/DHT22Lib).
 ///
 /// \todo Use interrupts instead
 ///
 /// \authors George Hadjikyriacou, SimKard, Rob Tillaart, Dario Berzano
 
-#ifndef dht11_h
-#define dht11_h
+#ifndef dht22_h
+#define dht22_h
 
 #if defined(ARDUINO) && (ARDUINO >= 100)
 #include <Arduino.h>
@@ -78,15 +78,15 @@
 #include <WProgram.h>
 #endif
 
-#define DHT11LIB_VERSION "0.4.1"
+#define DHT22LIB_VERSION "0.4.1"
 
-#define DHT11_OK 0
-#define DHT11_ERR_CKSUM -1
-#define DHT11_ERR_TMOUT -2
+#define DHT22_OK 0
+#define DHT22_ERR_CKSUM -1
+#define DHT22_ERR_TMOUT -2
 
-#define DHT11_INVALID -9999
+#define DHT22_INVALID -9999
 
-class dht11 {
+class dht22 {
 
   private:
 
@@ -103,8 +103,8 @@ class dht11 {
 
   public:
 
-    dht11(int pin, size_t histSz);
-    ~dht11();
+    dht22(int pin, size_t histSz);
+    ~dht22();
     int read();
     int get_weighted_temperature(int *avgDec);
     int get_weighted_humidity(int *avgDec);
@@ -113,4 +113,4 @@ class dht11 {
 
 };
 
-#endif  // dht11_h
+#endif  // dht22_h
