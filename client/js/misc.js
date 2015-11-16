@@ -81,7 +81,7 @@
     thingid: null,
     password: null,
     debug: false,
-    tolerance_ms: 15000,
+    tolerance_ms: 30000,
     expect_cmd_result: false,
     msg_update_expect_cmd_result_s: 7,
     lastcmd_id: null,
@@ -665,9 +665,11 @@
               item_real_date = new Date(msg.timestamp);
 
               // check timestamp consistency (CurrentStatus.tolerance_ms must be set)
-              if ( isNaN(item_real_date.getTime()) ||
-                Math.abs(item_date-item_real_date) > CurrentStatus.tolerance_ms ) {
-                Logger.log('Control.read_status', 'message/server timestamps mismatch, ignoring');
+              tsoff = Math.abs(item_date-item_real_date);
+              if ( isNaN(item_real_date.getTime()) || tsoff > CurrentStatus.tolerance_ms ) {
+                Logger.log('Control.read_status',
+                           'message/server timestamps mismatch ' +
+                           '(off by ' + tsoff + ' ms), ignoring');
                 return true;
               }
 

@@ -64,7 +64,7 @@ class PiHeat(Daemon):
     ## Cleartext password
     self._password = None
     ## Tolerance (in msec) between message's declared timestamp and server's timestamp
-    self._tolerance_ms = 15000
+    self._tolerance_ms = 30000
     ## Control file for the heating switch (we write 0 or 1 to this file)
     self._switch_file = None
     ## File used for watchdog purposes. Create this file continuously, something else will delete
