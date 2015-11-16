@@ -33,22 +33,14 @@ const char *dht_err(char n) {
 
 void setup() {
   Serial.begin(115200);
-  rf433.setupSend(rfProtoV1, 3);
+  rf433.setupSend(rfProtoV2, 5);
+  //pinMode(RF433_PIN, OUTPUT);
   Serial.println("arduino_temprf init");
 }
 
 void loop() {
-  Serial.println(">> loop");
-  int chk = dht22.read22(DHT22_PIN);
+  //Serial.println(">> loop");
   uint8_t rfdata[8];
-  Serial.print("status: ");
-  Serial.println(dht_err(chk));
-  if (chk == DHTLIB_OK) {
-    Serial.print("temp: ");
-    Serial.println(dht22.temperature);
-    Serial.print("humidity: ");
-    Serial.println(dht22.humidity);
-  }
   rfdata[0] = 1;
   rfdata[1] = 2;
   rfdata[2] = 3;
@@ -57,7 +49,15 @@ void loop() {
   rfdata[5] = 6;
   rfdata[6] = 7;
   rfdata[7] = 8;
-  rf433.send(rfdata, 8);
-  Serial.println("<< loop");
-  delay(2000);
+  rf433.send(rfdata, 4);
+  ////Serial.println("<< loop");
+  delay(1000);
+
+  //uint8_t hilen = 100;
+  //uint8_t lolen = 200;
+  //digitalWrite(RF433_PIN, HIGH);
+  //delay(hilen);
+  //digitalWrite(RF433_PIN, LOW);
+  //delay(lolen);
+
 }
