@@ -84,6 +84,8 @@ class PiHeat(Daemon):
     self._lastcmd_id = 'saved_configuration'
     ## Current temperature (Celsius degrees)
     self._temp = None;
+    ## Tolerance (in ms) for trustable temperature. Older temperatures are ignored
+    self._temp_tolerance_ms = 5*60*1000;
     ## Current target temperature (Celsius degrees)
     self._target_temp = 0;
     ## Hysteresis positive tolerance
@@ -600,6 +602,9 @@ class PiHeat(Daemon):
     try:
       val = requests.get("https://dweet.io/get/latest/dweet/for/%s-sensors" % self._thingid,
                          timeout=self._requests_timeout).json()
+      delta = (TimeStamp()-TimeStamp.from_iso_str(val["with"][0]["created"])).total_seconds()*1000
+      if delta > self._temp_tolerance_ms:
+        raise Exception("temperature data is too old (> %d ms)" % self._temp_tolerance_ms)
       self.temp = val["with"][0]["content"]["temp"];
       self._humi = val["with"][0]["content"].get("humi", None);
       self._sensors_errors = 0
