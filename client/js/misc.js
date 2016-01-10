@@ -10,6 +10,11 @@
     'unknown': '#heating-status-unknown'
   };
 
+  var heating_actual_status = {
+    'on': '#heating-actually-on',
+    'off': '#heating-actually-off',
+  };
+
   var heating_override = {
     'on': '#heating-override-on',
     'off': '#heating-override-off',
@@ -375,6 +380,10 @@
         // hide all override status labels
         $(value).hide();
       });
+      $([heating_actual_status.on,
+         heating_actual_status.off].join(",")).hide();
+      $("#temperature").hide();
+      $("#target-temperature").hide();
       if (CurrentStatus.status === null) {
         $([control_containers.turnon,
            control_containers.turnoff,
@@ -388,7 +397,20 @@
            control_containers.turnoff,
            control_containers.schedule].join(",")).show();
         $(control_containers.reload).hide();
+
         $(CurrentStatus.status ? heating_status.on : heating_status.off).show();
+
+        if (!isNaN(CurrentStatus.temp)) {
+          $("#temperature").text(CurrentStatus.temp.toFixed(1) + "°C").show();
+          if (CurrentStatus.status) {
+            if (!isNaN(CurrentStatus.target_temp)) {
+              $("#target-temperature").text(CurrentStatus.target_temp.toFixed(1) + "°C").show();
+            }
+            if (CurrentStatus.actual_status != null) {
+              $(CurrentStatus.actual_status ? heating_actual_status.on : heating_actual_status.off).show();
+            }
+          }
+        }
 
         if (CurrentStatus.override_program) {
           $(control_containers.cancel).show();
@@ -688,6 +710,9 @@
                   NewStatus = {};
                   NewStatus.when = item_real_date;
                   NewStatus.status = msg.status;
+                  NewStatus.actual_status = msg.actual_status;
+                  NewStatus.temp = parseFloat(msg.temp);
+                  NewStatus.target_temp = parseFloat(msg.target_temp);
                   NewStatus.msg_expiry_s = parseInt(msg.msgexp_s);
                   NewStatus.msg_update_s = parseInt(msg.msgupd_s);
                   NewStatus.program = msg.program.sort();
@@ -733,6 +758,9 @@
               CurrentStatus.redraw_programs = true;
             }
             CurrentStatus.status = NewStatus.status;
+            CurrentStatus.actual_status = NewStatus.actual_status;
+            CurrentStatus.temp = NewStatus.temp;
+            CurrentStatus.target_temp = NewStatus.target_temp;
             CurrentStatus.msg_expiry_s = NewStatus.msg_expiry_s;
             CurrentStatus.msg_update_s = NewStatus.msg_update_s;
             CurrentStatus.program = NewStatus.program;

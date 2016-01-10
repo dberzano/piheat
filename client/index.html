@@ -98,11 +98,21 @@
 
       <div class="container text-center" id="page-control">
 
-        <p class="piheat-bottomspace" id="heating-status">Heating is
+        <p id="heating-status">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
           <span id="heating-status-unknown" class="text-warning">unknown</span>
+        </p>
+
+        <p id="heating-actual-status">
+          <!-- temp -->
+          <span id="temperature">-°C</span>
+          <!-- heating actual status -->
+          <span id="heating-actually-on" class="text-success"><span class="glyphicon glyphicon-arrow-up"></span></span>
+          <span id="heating-actually-off" class="text-danger"><span class="glyphicon glyphicon-arrow-down"></span></span>
+          <!-- target temp -->
+          <span id="target-temperature">(-°C)</span>
         </p>
 
         <p id="heating-override" class="piheat-bottomspace">
