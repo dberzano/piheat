@@ -803,8 +803,10 @@
       now = new Date();
       later = new Date(now);
       later.setHours(later.getHours()+2)
+      temp = parseFloat( $(".prog-head .slider[data-value]").data("value") );
       ovr = Timespan.create(now, later);
       ovr.status = true;
+      ovr.temp = temp;
       CurrentStatus.override_program = ovr;
       Control.req();
     },
