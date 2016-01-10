@@ -643,6 +643,9 @@ class PiHeat(Daemon):
           logging.debug("An override is set: " + json.dumps(self._override_program))
           if self.tminc(hm, self._override_program["begin"], self._override_program["end"]):
             self.heating_status = self._override_program["status"]
+            if self.heating_status:
+              self.target_temp = self.heating_status and \
+                                 self._override_program.get("temp", 99) or 0
           elif hm > self._override_program["end"]:
             # Overrides are < 24 h
             logging.debug("Override has expired, deleting")
