@@ -113,3 +113,20 @@ div#piheat-labels {
 body {
   font-family: Arial, Helvetica, sans-serif !important;
 }
+
+.prog-head {
+  padding-left: 7px;
+  padding-right: 7px;
+}
+
+.prog-head .slider-container {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.prog-head .slider-container .slider-selection {
+  /* green (#5cb85c) to orange (#f0ad4e) */
+  background: linear-gradient(to right, #5cb85c, #f0ad4e);
+}

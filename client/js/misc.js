@@ -270,6 +270,9 @@
           d.setUTCHours(parseInt(item.end/100));
           d.setUTCMinutes(item.end%100);
           newitem.end = d.getHours()*100+d.getMinutes();
+          newitem.temp = item.temp;
+          try { newitem.temp = item.temp; }
+          catch (e) {};
           CurrentStatus.new_program.push(newitem);
         });
 
@@ -288,24 +291,27 @@
       tpl.show()
       tpl.appendTo(texts.prog_title)
       tpl.find(".clockpicker").clockpicker();
+      tpl.find(".slider").slider();
       tpl.find(".prog-new button").click(function() {
         beg = $(this).closest(".prog-head").find(".prog-begin").val();
         end = $(this).closest(".prog-head").find(".prog-end").val();
+        temp = $(this).closest(".prog-head").find(".slider[data-value]").data("value");
         beg = parseInt(beg.replace(":", ""), 10);
         end = parseInt(end.replace(":", ""), 10);
+        temp = parseFloat(temp);
         if (beg > end) {
           // Swap
           beg = beg + end;
           end = beg - end;
           beg = beg - end;
         }
-        Logger.log("<click event>", "Clicked: " + beg + "->" + end);
+        Logger.log("<click event>", "Clicked: " + beg + "->" + end + " @ " + temp);
         Logger.log("<click event>", "Before: " + JSON.stringify( CurrentStatus.new_program ));
         exists = CurrentStatus.new_program.find(function (item) {
           return item.begin == beg && item.end == end;
         });
         if (!exists) {
-          CurrentStatus.new_program.push({ begin: beg, end: end });
+          CurrentStatus.new_program.push({ begin: beg, end: end, temp: temp });
           CurrentStatus.new_program.sort(function(a, b) {return a.begin-b.begin});
           Display.draw_programs(true);
         }
@@ -327,7 +333,11 @@
         end_str = end_str.substring(0,2)+":"+end_str.substring(2,4);
         $("<td>"+end_str+"</td>").attr("align", "center").appendTo(rw);
 
-        Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str)
+        try { temp = item.temp.toString() + "°C"; }
+        catch (e) { temp = "-°C"; }
+        $("<td>"+temp+"</td>").attr("align", "center").appendTo(rw);
+
+        Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str+' @ '+temp);
 
         rmb = $(templates.prog_rmbtn).clone();
         rmb.css("display", "");
