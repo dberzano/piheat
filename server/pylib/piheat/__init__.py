@@ -290,13 +290,13 @@ class PiHeat(Daemon):
                   (str(temp), target_temp, status))
 
     if status:
-      # Heating set to be on. Check temp.
-      if temp > self.target_temp+self._hysteresis_temp_pos:
-        self.actual_heating_on = False
-        self._heating_ascending = False
-      elif temp < self.target_temp-self._hysteresis_temp_neg:
+      # Heating set to be on. Check temp. Treats temp is None case.
+      if temp is None or temp < self.target_temp-self._hysteresis_temp_neg:
         self.actual_heating_on = True
         self._heating_ascending = True
+      elif temp > self.target_temp+self._hysteresis_temp_pos:
+        self.actual_heating_on = False
+        self._heating_ascending = False
       else:
         # Between hysteresis boundaries. Heating on if ascending, off if
         # descending. So, heating has same status of ascending.
