@@ -433,9 +433,7 @@ class PiHeat(Daemon):
         'type': 'status',
         'timestamp': str(now),  # ISO UTC
         'status': self.heating_status,
-        'actual_status': self.actual_heating_on,
         'temp': self.temp,
-        'target_temp': self.target_temp,
         'msgexp_s': self._msg_expiry_s,
         'msgupd_s': self._send_status_every_s,
         'program': self._program,
@@ -443,6 +441,11 @@ class PiHeat(Daemon):
         'name': self._thingname,
         'lastcmd_id': self._lastcmd_id
       }
+      if self.heating_status:
+        raw.update({
+          'actual_status': self.actual_heating_on,
+          'target_temp': self.target_temp,
+        })
       logging.debug('message: ' + json.dumps(raw, indent=2))
       payload = self.encrypt_msg(raw)
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
@@ -636,6 +639,7 @@ class PiHeat(Daemon):
       self.watchdog()
 
       # Change status according to programs and overrides
+      # TODO: can be improved to speed up reaction time.
       if int(time.time())-last_status_change_ts > 20:
         hm = int(TimeStamp().get_formatted_str("%H%M"))
 
