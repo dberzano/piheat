@@ -83,22 +83,22 @@ class PiHeat(Daemon):
     ## Last command unique ID (string)
     self._lastcmd_id = 'saved_configuration'
     ## Current temperature (Celsius degrees)
-    self._temp = None;
+    self._temp = None
     ## Tolerance (in ms) for trustable temperature. Older temperatures are ignored
-    self._temp_tolerance_ms = 5*60*1000;
+    self._temp_tolerance_ms = 5*60*1000
     ## Current target temperature (Celsius degrees)
     self._target_temp = 0;
     ## Hysteresis positive tolerance
-    self._hysteresis_temp_pos = 1;
+    self._hysteresis_temp_pos = 0.7
     ## Hysteresis negative tolerance
-    self._hysteresis_temp_neg = 0.5;
+    self._hysteresis_temp_neg = 0.5
     ## Current humidity (percentage)
-    self._humi = None;
+    self._humi = None
     ## Number of last consecutive errors in reading sensor data
-    self._sensors_errors = 0;
+    self._sensors_errors = 0
     ## Threshold of consecutive sensor errors before resetting data to None
     ## (as opposed to keeping the last value)
-    self._sensors_errors_tolerance = 5;
+    self._sensors_errors_tolerance = 5
     ## Timeout (connect timeout, read timeout) in seconds for Python requests
     self._requests_timeout = (15,15)
     try:
