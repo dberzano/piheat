@@ -10,6 +10,11 @@
     'unknown': '#heating-status-unknown'
   };
 
+  var heating_actual_status = {
+    'on': '#heating-actually-on',
+    'off': '#heating-actually-off',
+  };
+
   var heating_override = {
     'on': '#heating-override-on',
     'off': '#heating-override-off',
@@ -270,6 +275,9 @@
           d.setUTCHours(parseInt(item.end/100));
           d.setUTCMinutes(item.end%100);
           newitem.end = d.getHours()*100+d.getMinutes();
+          newitem.temp = item.temp;
+          try { newitem.temp = item.temp; }
+          catch (e) {};
           CurrentStatus.new_program.push(newitem);
         });
 
@@ -288,24 +296,27 @@
       tpl.show()
       tpl.appendTo(texts.prog_title)
       tpl.find(".clockpicker").clockpicker();
+      tpl.find(".slider").slider();
       tpl.find(".prog-new button").click(function() {
         beg = $(this).closest(".prog-head").find(".prog-begin").val();
         end = $(this).closest(".prog-head").find(".prog-end").val();
+        temp = $(this).closest(".prog-head").find(".slider[data-value]").data("value");
         beg = parseInt(beg.replace(":", ""), 10);
         end = parseInt(end.replace(":", ""), 10);
+        temp = parseFloat(temp);
         if (beg > end) {
           // Swap
           beg = beg + end;
           end = beg - end;
           beg = beg - end;
         }
-        Logger.log("<click event>", "Clicked: " + beg + "->" + end);
+        Logger.log("<click event>", "Clicked: " + beg + "->" + end + " @ " + temp);
         Logger.log("<click event>", "Before: " + JSON.stringify( CurrentStatus.new_program ));
         exists = CurrentStatus.new_program.find(function (item) {
           return item.begin == beg && item.end == end;
         });
         if (!exists) {
-          CurrentStatus.new_program.push({ begin: beg, end: end });
+          CurrentStatus.new_program.push({ begin: beg, end: end, temp: temp });
           CurrentStatus.new_program.sort(function(a, b) {return a.begin-b.begin});
           Display.draw_programs(true);
         }
@@ -327,7 +338,11 @@
         end_str = end_str.substring(0,2)+":"+end_str.substring(2,4);
         $("<td>"+end_str+"</td>").attr("align", "center").appendTo(rw);
 
-        Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str)
+        try { temp = item.temp.toString() + "°C"; }
+        catch (e) { temp = "-°C"; }
+        $("<td>"+temp+"</td>").attr("align", "center").appendTo(rw);
+
+        Logger.log('Display.draw_programs', 'Program: '+beg_str+'->'+end_str+' @ '+temp);
 
         rmb = $(templates.prog_rmbtn).clone();
         rmb.css("display", "");
@@ -365,6 +380,10 @@
         // hide all override status labels
         $(value).hide();
       });
+      $([heating_actual_status.on,
+         heating_actual_status.off].join(",")).hide();
+      $("#temperature").hide();
+      $("#target-temperature").hide();
       if (CurrentStatus.status === null) {
         $([control_containers.turnon,
            control_containers.turnoff,
@@ -378,7 +397,20 @@
            control_containers.turnoff,
            control_containers.schedule].join(",")).show();
         $(control_containers.reload).hide();
+
         $(CurrentStatus.status ? heating_status.on : heating_status.off).show();
+
+        if (!isNaN(CurrentStatus.temp)) {
+          $("#temperature").text(CurrentStatus.temp.toFixed(1) + "°C").show();
+          if (CurrentStatus.status) {
+            if (!isNaN(CurrentStatus.target_temp)) {
+              $("#target-temperature").text(CurrentStatus.target_temp.toFixed(1) + "°C").show();
+            }
+            if (CurrentStatus.actual_status != null) {
+              $(CurrentStatus.actual_status ? heating_actual_status.on : heating_actual_status.off).show();
+            }
+          }
+        }
 
         if (CurrentStatus.override_program) {
           $(control_containers.cancel).show();
@@ -678,6 +710,9 @@
                   NewStatus = {};
                   NewStatus.when = item_real_date;
                   NewStatus.status = msg.status;
+                  NewStatus.actual_status = msg.actual_status;
+                  NewStatus.temp = parseFloat(msg.temp);
+                  NewStatus.target_temp = parseFloat(msg.target_temp);
                   NewStatus.msg_expiry_s = parseInt(msg.msgexp_s);
                   NewStatus.msg_update_s = parseInt(msg.msgupd_s);
                   NewStatus.program = msg.program.sort();
@@ -723,6 +758,9 @@
               CurrentStatus.redraw_programs = true;
             }
             CurrentStatus.status = NewStatus.status;
+            CurrentStatus.actual_status = NewStatus.actual_status;
+            CurrentStatus.temp = NewStatus.temp;
+            CurrentStatus.target_temp = NewStatus.target_temp;
             CurrentStatus.msg_expiry_s = NewStatus.msg_expiry_s;
             CurrentStatus.msg_update_s = NewStatus.msg_update_s;
             CurrentStatus.program = NewStatus.program;
@@ -765,8 +803,10 @@
       now = new Date();
       later = new Date(now);
       later.setHours(later.getHours()+2)
+      temp = parseFloat( $(".prog-head .slider[data-value]").data("value") );
       ovr = Timespan.create(now, later);
       ovr.status = true;
+      ovr.temp = temp;
       CurrentStatus.override_program = ovr;
       Control.req();
     },

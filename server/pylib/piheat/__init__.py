@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 ## @file __init__.py
 #  Main file of the Pi Heat application.
@@ -57,6 +57,10 @@ class PiHeat(Daemon):
     self._send_status_every_s = None
     ## Current heating status (boolean)
     self._heating_status = False
+    ## Current actual heating status (boolean)
+    self._actual_heating_on = False
+    ## Heating ascending/descending (boolean)
+    self._heating_ascending = True
     ## True if current heating status has been just updated
     self._heating_status_updated = False
     ## SHA256 hash of encryption password
@@ -75,9 +79,26 @@ class PiHeat(Daemon):
     ## Override current program
     self._override_program = None
     ## Never touched heating status?
-    self._heating_status_firsttime = True
+    self._actual_heating_firsttime = True
     ## Last command unique ID (string)
     self._lastcmd_id = 'saved_configuration'
+    ## Current temperature (Celsius degrees)
+    self._temp = None
+    ## Tolerance (in ms) for trustable temperature. Older temperatures are ignored
+    self._temp_tolerance_ms = 5*60*1000
+    ## Current target temperature (Celsius degrees)
+    self._target_temp = 0;
+    ## Hysteresis positive tolerance
+    self._hysteresis_temp_pos = 0.7
+    ## Hysteresis negative tolerance
+    self._hysteresis_temp_neg = 0.5
+    ## Current humidity (percentage)
+    self._humi = None
+    ## Number of last consecutive errors in reading sensor data
+    self._sensors_errors = 0
+    ## Threshold of consecutive sensor errors before resetting data to None
+    ## (as opposed to keeping the last value)
+    self._sensors_errors_tolerance = 5
     ## Timeout (connect timeout, read timeout) in seconds for Python requests
     self._requests_timeout = (15,15)
     try:
@@ -172,7 +193,6 @@ class PiHeat(Daemon):
       return False
     return True
 
-
   ## Gets status of heating.
   @property
   def heating_status(self):
@@ -184,33 +204,116 @@ class PiHeat(Daemon):
   #  @param status True for on, False for off
   @heating_status.setter
   def heating_status(self, status):
-    if status == self._heating_status and not self._heating_status_firsttime:
-      logging.debug('heating status unchanged')
+    if self._heating_status != status:
+      self._heating_status = status
+      self._heating_status_updated = True
+    self.update_temp_status()
+
+
+  ## Gets temperature.
+  @property
+  def temp(self):
+    return self._temp
+
+
+  ## Sets temperature.
+  #
+  #  @param temp The temperature to set
+  @temp.setter
+  def temp(self, temp):
+    if self._temp != temp:
+      self._temp = temp
+      self._heating_status_updated = True
+    self.update_temp_status()
+
+
+  ## Gets target temperature.
+  @property
+  def target_temp(self):
+    return self._target_temp
+
+
+  ## Sets target temperature.
+  #
+  #  @param target_temp The target temperature to set
+  @target_temp.setter
+  def target_temp(self, target_temp):
+    if self._target_temp != target_temp:
+      self._target_temp = target_temp
+      self._heating_status_updated = True
+    self.update_temp_status()
+
+
+  ## Gets actual heating status.
+  @property
+  def actual_heating_on(self):
+    return self._actual_heating_on
+
+
+  ## Sets actual heating on or off.
+  #
+  #  @param status True if on, False if off
+  @actual_heating_on.setter
+  def actual_heating_on(self, status):
+    if status == self._actual_heating_on and not self._actual_heating_firsttime:
+      logging.debug("actual heating status unchanged (%s)" %
+                    (self._actual_heating_on and "on" or "off"))
       return True
-    self._heating_status_firsttime = False
+    self._actual_heating_firsttime = False
+    # We change the status.
     if status:
-      status_str = 'on'
-      status_file = '1'
+      status_str = "on"
+      status_file = "1"
     else:
-      status_str = 'off'
-      status_file = '0'
-    logging.info('turning heating %s' % status_str)
+      status_str = "off"
+      status_file = "0"
+    logging.info("turning actual heating %s" % status_str)
     try:
-      with open(self._switch_file, 'w') as fp:
+      with open(self._switch_file, "w") as fp:
         fp.write(status_file)
     except IOError as e:
-      logging.error('cannot change status: %s' % e)
+      logging.error("cannot change status: %s" % e)
       return False
-    self._heating_status = status
+    # Set member only if write is successful.
+    self._actual_heating_on = status
     self._heating_status_updated = True
     return True
+
+
+  ## Updates status and temperature, and possibly changes actual status
+  #  accordingly.
+  def update_temp_status(self):
+    status = self._heating_status
+    temp = self._temp
+    target_temp = self._target_temp
+    logging.debug("updating temp (%s), target temp (%f) and status (%s)" %
+                  (str(temp), target_temp, status))
+
+    if status:
+      # Heating set to be on. Check temp. Treats temp is None case.
+      if temp is None or temp < self.target_temp-self._hysteresis_temp_neg:
+        self.actual_heating_on = True
+        self._heating_ascending = True
+      elif temp > self.target_temp+self._hysteresis_temp_pos:
+        self.actual_heating_on = False
+        self._heating_ascending = False
+      else:
+        # Between hysteresis boundaries. Heating on if ascending, off if
+        # descending. So, heating has same status of ascending.
+        self.actual_heating_on = self._heating_ascending
+      logging.debug("hysteresis: %s" %
+                    (self._heating_ascending and "ascending" or "descending"))
+    else:
+      # Heating should be off. Ascending for the next time it goes on.
+      self.actual_heating_on = False
+      self._heating_ascending = True
 
 
   ## Returns True if heating status was just updated, and immediately set the
   #  value to false.
   #
   #  @return True if heating status was just updated, false after first call
-  @property 
+  @property
   def heating_status_updated(self):
     x = self._heating_status_updated
     self._heating_status_updated = False
@@ -332,6 +435,7 @@ class PiHeat(Daemon):
         'type': 'status',
         'timestamp': str(now),  # ISO UTC
         'status': self.heating_status,
+        'temp': self.temp,
         'msgexp_s': self._msg_expiry_s,
         'msgupd_s': self._send_status_every_s,
         'program': self._program,
@@ -339,6 +443,11 @@ class PiHeat(Daemon):
         'name': self._thingname,
         'lastcmd_id': self._lastcmd_id
       }
+      if self.heating_status:
+        raw.update({
+          'actual_status': self.actual_heating_on,
+          'target_temp': self.target_temp,
+        })
       logging.debug('message: ' + json.dumps(raw, indent=2))
       payload = self.encrypt_msg(raw)
       r = requests.post( 'https://dweet.io/dweet/for/%s' % self._thingid, params=payload )
@@ -487,6 +596,31 @@ class PiHeat(Daemon):
       logging.error("cannot write watchdog file %s: %s" % (self._watchdog_file, str(e)))
 
 
+  ## Get data from sensor
+  def get_sensors(self):
+    logging.debug("getting temperature and other sensor data")
+    try:
+      val = requests.get("https://dweet.io/get/latest/dweet/for/%s-sensors" % self._thingid,
+                         timeout=self._requests_timeout).json()
+      delta = (TimeStamp()-TimeStamp.from_iso_str(val["with"][0]["created"])).total_seconds()*1000
+      if delta > self._temp_tolerance_ms:
+        raise Exception("temperature data is too old (> %d ms)" % self._temp_tolerance_ms)
+      self.temp = val["with"][0]["content"]["temp"];
+      self._humi = val["with"][0]["content"].get("humi", None);
+      self._sensors_errors = 0
+    except Exception as e:
+      self._sensors_errors = self._sensors_errors + 1
+      if self._sensors_errors >= self._sensors_errors_tolerance:
+        logging.error("too many sensors reading errors (%d out of %d): resetting data: %s" %
+                      (self._sensors_errors, self._sensors_errors_tolerance, e))
+        self.temp = None
+        self._humi = None
+      else:
+        logging.warning("sensor error, retaining old data: %s" % e)
+    logging.debug("sensor data: temp=%s, humidity=%s" %
+                  (self.temp  and "%.1f°C" % self.temp  or "n/a",
+                   self._humi and "%.1f%%" % self._humi or "n/a"))
+
   ## Program's entry point, overridden from the base Daemon class.
   #
   #  @return Always zero
@@ -501,13 +635,16 @@ class PiHeat(Daemon):
     last_status_change_ts = 0
     while True:
 
-      # Retrieve latest command
+      # Retrieve latest command and temperature
       if int(time.time())-last_command_check_ts > self._get_commands_every_s:
+        self.get_sensors()
+        self.watchdog()
         if self.get_latest_command():
           last_command_check_ts = int(time.time())
       self.watchdog()
 
       # Change status according to programs and overrides
+      # TODO: can be improved to speed up reaction time.
       if int(time.time())-last_status_change_ts > 20:
         hm = int(TimeStamp().get_formatted_str("%H%M"))
 
@@ -515,6 +652,9 @@ class PiHeat(Daemon):
           logging.debug("An override is set: " + json.dumps(self._override_program))
           if self.tminc(hm, self._override_program["begin"], self._override_program["end"]):
             self.heating_status = self._override_program["status"]
+            if self.heating_status:
+              self.target_temp = self.heating_status and \
+                                 self._override_program.get("temp", 9999) or -9999
           elif hm > self._override_program["end"]:
             # Overrides are < 24 h
             logging.debug("Override has expired, deleting")
@@ -527,7 +667,9 @@ class PiHeat(Daemon):
         if not self._override_program:
           if self._program:
             logging.debug("Programs are set: " + json.dumps(self._program))
-            self.heating_status = len([1 for p in self._program if self.tminc(hm, p["begin"], p["end"])]) > 0
+            temps = [p.get("temp", 9999) for p in self._program if self.tminc(hm, p["begin"], p["end"])] + [-9999]
+            self.heating_status = len(temps) > 1
+            self.target_temp = temps[0]
           else:
             logging.debug("No program set")
             self.heating_status = False

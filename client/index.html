@@ -41,6 +41,10 @@
     <script src="js/bootstrap-clockpicker.min.js"></script>
     <script src="js/jquery-clockpicker.min.js"></script>
 
+    <!-- Bootstrap slider -->
+    <link rel="stylesheet" href="css/bootstrap-slider.min.css">
+    <script src="js/bootstrap-slider.min.js"></script>
+
     <!-- My script -->
     <script src="js/misc.js"></script>
 
@@ -94,11 +98,21 @@
 
       <div class="container text-center" id="page-control">
 
-        <p class="piheat-bottomspace" id="heating-status">Heating is
+        <p id="heating-status">Heating is
           <!-- heating status -->
           <span id="heating-status-on" class="text-success">on</span>
           <span id="heating-status-off" class="text-danger">off</span>
           <span id="heating-status-unknown" class="text-warning">unknown</span>
+        </p>
+
+        <p id="heating-actual-status">
+          <!-- temp -->
+          <span id="temperature">-°C</span>
+          <!-- heating actual status -->
+          <span id="heating-actually-on" class="text-success"><span class="glyphicon glyphicon-arrow-up"></span></span>
+          <span id="heating-actually-off" class="text-danger"><span class="glyphicon glyphicon-arrow-down"></span></span>
+          <!-- target temp -->
+          <span id="target-temperature">(-°C)</span>
         </p>
 
         <p id="heating-override" class="piheat-bottomspace">
@@ -209,28 +223,53 @@
                 </div>
 
                 <!-- add program (template, hidden) -->
-                <div class="row row-no-padding" id="piheat-program-template" style="display:none">
-                  <div class="col-xs-5">
-                    <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
-                      <input type="text" class="prog-begin form-control" value="00:00">
-                      <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-time"></span>
-                      </span>
+                <div class="row" id="piheat-program-template" style="display:none">
+
+                  <div class="row">
+                    <!-- this row contains the clockpickers and the add button -->
+                    <div class="col-xs-5">
+                      <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
+                        <input type="text" class="prog-begin form-control" value="00:00">
+                        <span class="input-group-addon">
+                          <span class="glyphicon glyphicon-time"></span>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="col-xs-5">
+                      <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
+                        <input type="text" class="prog-end form-control" value="23:59">
+                        <span class="input-group-addon">
+                          <span class="glyphicon glyphicon-time"></span>
+                        </span>
+                      </div>
+                    </div>
+                    <div class="col-xs-2">
+                      <div class="btn-group btn-group-md prog-new" role="group">
+                        <button type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-xs-5">
-                    <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
-                      <input type="text" class="prog-end form-control" value="23:59">
-                      <span class="input-group-addon">
-                        <span class="glyphicon glyphicon-time"></span>
-                      </span>
+                  <div class="row">
+                    <!-- this row contains the temperature slider -->
+                    <div class="col-xs-12">
+                      <div class="slider-container">
+                      <div class="slider" style="width:100%"
+                           data-slider-min="15"
+                           data-slider-max="30"
+                           data-slider-ticks="[15,20,25,30]"
+                           data-slider-ticks-labels='["15°C","20°C","25°C","30°C"]'
+                           data-slider-step="0.1"
+                           data-slider-orientation="horizontal"
+                           data-slider-value="18"
+                           data-slider-reversed="false"
+                           data-slider-selection="before"
+                           data-slider-tooltip="always"
+                           data-slider-tooltip-position="bottom">
+                      </div>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-xs-2">
-                    <div class="btn-group btn-group-md prog-new" role="group">
-                      <button type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
-                    </div>
-                  </div>
+
                 </div><!-- /.row -->
 
               </div><!-- /.panel-body -->
@@ -245,7 +284,8 @@
         <a href="http://getbootstrap.com/">Bootstrap</a> /
         <a href="http://dweet.io">dweet.io</a> /
         <a href="https://github.com/digitalbazaar/forge">Forge</a> /
-        <a href="https://github.com/weareoutman/clockpicker">Clockpicker</a>
+        <a href="https://github.com/weareoutman/clockpicker">Clockpicker</a> /
+        <a href="http://seiyria.com/bootstrap-slider/">Slider</a>
       </div>
 
     </div><!-- /.master-container -->
