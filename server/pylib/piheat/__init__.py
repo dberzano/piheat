@@ -654,7 +654,7 @@ class PiHeat(Daemon):
             self.heating_status = self._override_program["status"]
             if self.heating_status:
               self.target_temp = self.heating_status and \
-                                 self._override_program.get("temp", 99) or 0
+                                 self._override_program.get("temp", 9999) or -9999
           elif hm > self._override_program["end"]:
             # Overrides are < 24 h
             logging.debug("Override has expired, deleting")
@@ -667,7 +667,7 @@ class PiHeat(Daemon):
         if not self._override_program:
           if self._program:
             logging.debug("Programs are set: " + json.dumps(self._program))
-            temps = [p.get("temp", 99) for p in self._program if self.tminc(hm, p["begin"], p["end"])] + [0]
+            temps = [p.get("temp", 9999) for p in self._program if self.tminc(hm, p["begin"], p["end"])] + [-9999]
             self.heating_status = len(temps) > 1
             self.target_temp = temps[0]
           else:
