@@ -2,8 +2,8 @@
 -- Remember to connect GPIO16 and RST to enable deep sleep
 --
 
-wifi_SSID = "@WIFI_SSID@"
-wifi_password = "@WIFI_PASSWORD@"
+--wifi_SSID = "@WIFI_SSID@"
+--wifi_password = "@WIFI_PASSWORD@"
 -- B,G,N. B has the highest range (though the lowest rate)
 wifi_signal_mode = wifi.PHYMODE_B
 
@@ -16,7 +16,7 @@ client_gateway = ""
 dsleep_interval_us = 60000000
 
 -- dweet.io thing id
-dweet_thing_id = "@DWEET_THING_ID@"
+--dweet_thing_id = "@DWEET_THING_ID@"
 
 temp = 0
 humi = 0

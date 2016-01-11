@@ -1,0 +1,4 @@
+-- Private data
+wifi_SSID = "@WIFI_SSID@"
+wifi_password = "@WIFI_PASSWORD@"
+dweet_thing_id = "@DWEET_THING_ID@-sensors"
