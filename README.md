@@ -182,7 +182,7 @@ serially.
 
 ### Configure the parameters
 
-Edit the `user.lua` file to change:
+Based on the `private.lua.example` file, create a `private.lua` file and change:
 
 * `wifi_SSID`: the Wi-Fi network name
 * `wifi_password`: the Wi-Fi password *(if applicable)*

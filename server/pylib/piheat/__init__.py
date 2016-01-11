@@ -89,9 +89,9 @@ class PiHeat(Daemon):
     ## Current target temperature (Celsius degrees)
     self._target_temp = 0;
     ## Hysteresis positive tolerance
-    self._hysteresis_temp_pos = 0.7
+    self._hysteresis_temp_pos = 0.2
     ## Hysteresis negative tolerance
-    self._hysteresis_temp_neg = 0.5
+    self._hysteresis_temp_neg = 0.2
     ## Current humidity (percentage)
     self._humi = None
     ## Number of last consecutive errors in reading sensor data
