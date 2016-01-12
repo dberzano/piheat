@@ -160,3 +160,9 @@ body {
 .prog-head .prog-new {
   float: right;
 }
+
+.piheat-newtemp-container {
+  margin-top: 7px;
+  font-size: 100%;
+  text-align: right;
+}

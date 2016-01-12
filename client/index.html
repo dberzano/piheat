@@ -227,7 +227,7 @@
 
                   <div class="row">
                     <!-- this row contains the clockpickers and the add button -->
-                    <div class="col-xs-5">
+                    <div class="col-xs-4">
                       <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
                         <input type="text" class="prog-begin form-control" value="00:00">
                         <span class="input-group-addon">
@@ -235,13 +235,17 @@
                         </span>
                       </div>
                     </div>
-                    <div class="col-xs-5">
+                    <div class="col-xs-4">
                       <div class="input-group clockpicker" data-placement="top" data-align="bottom" data-autoclose="true">
                         <input type="text" class="prog-end form-control" value="23:59">
                         <span class="input-group-addon">
                           <span class="glyphicon glyphicon-time"></span>
                         </span>
                       </div>
+                    </div>
+                    <div class="col-xs-2 piheat-newtemp-container text-danger">
+                      <span class="glyphicon glyphicon-fire"></span>
+                      <span id="piheat-newtemp">99</span>°C
                     </div>
                     <div class="col-xs-2">
                       <div class="btn-group btn-group-md prog-new" role="group">
@@ -263,7 +267,7 @@
                            data-slider-value="18"
                            data-slider-reversed="false"
                            data-slider-selection="before"
-                           data-slider-tooltip="always"
+                           data-slider-tooltip="never"
                            data-slider-tooltip-position="bottom">
                       </div>
                       </div>
