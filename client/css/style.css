@@ -132,13 +132,31 @@ body {
 }
 
 .prog-head .slider-container {
-  margin-top: 5px;
-  margin-bottom: 5px;
-  margin-left: 12px;
-  margin-right: 12px;
+  margin-top: 15px;
+  margin-bottom: -5px;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 .prog-head .slider-container .slider-selection {
   /* green (#5cb85c) to orange (#f0ad4e) */
   background: linear-gradient(to right, #5cb85c, #f0ad4e);
+}
+
+.prog-head > div.row {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.prog-head > div.row > div {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.prog-head > div.row:first-child > div:first-child {
+  float:left;
+}
+
+.prog-head .prog-new {
+  float: right;
 }
