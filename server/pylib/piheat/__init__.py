@@ -91,7 +91,7 @@ class PiHeat(Daemon):
     ## Hysteresis positive tolerance
     self._hysteresis_temp_pos = 0.2
     ## Hysteresis negative tolerance
-    self._hysteresis_temp_neg = 0.2
+    self._hysteresis_temp_neg = 0.1
     ## Current humidity (percentage)
     self._humi = None
     ## Number of last consecutive errors in reading sensor data
@@ -291,10 +291,10 @@ class PiHeat(Daemon):
 
     if status:
       # Heating set to be on. Check temp. Treats temp is None case.
-      if temp is None or temp < self.target_temp-self._hysteresis_temp_neg:
+      if temp is None or temp <= self.target_temp-self._hysteresis_temp_neg:
         self.actual_heating_on = True
         self._heating_ascending = True
-      elif temp > self.target_temp+self._hysteresis_temp_pos:
+      elif temp >= self.target_temp+self._hysteresis_temp_pos:
         self.actual_heating_on = False
         self._heating_ascending = False
       else:

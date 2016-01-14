@@ -296,7 +296,17 @@
       tpl.show()
       tpl.appendTo(texts.prog_title)
       tpl.find(".clockpicker").clockpicker();
-      tpl.find(".slider").slider();
+      sld = tpl.find(".slider").slider();
+      sld.on("change", function(ev) {
+          $("#piheat-newtemp").text(ev.value.newValue);
+        })
+
+      // Immediately fire the change event by setting the value.
+      // XXX There must be a better way...
+      sldVal = sld.data("value");
+      sld.slider("setValue", sld.data("slider-min"), true, true);
+      sld.slider("setValue", sldVal, true, true);
+
       tpl.find(".prog-new button").click(function() {
         beg = $(this).closest(".prog-head").find(".prog-begin").val();
         end = $(this).closest(".prog-head").find(".prog-end").val();
