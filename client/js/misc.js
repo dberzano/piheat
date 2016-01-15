@@ -299,7 +299,7 @@
       sld = tpl.find(".slider").slider();
       sld.on("change", function(ev) {
           $("#piheat-newtemp").text(ev.value.newValue);
-        })
+        });
 
       // Immediately fire the change event by setting the value.
       // XXX There must be a better way...
@@ -310,7 +310,7 @@
       tpl.find(".prog-new button").click(function() {
         beg = $(this).closest(".prog-head").find(".prog-begin").val();
         end = $(this).closest(".prog-head").find(".prog-end").val();
-        temp = $(this).closest(".prog-head").find(".slider[data-value]").data("value");
+        temp = $(this).closest(".prog-head").find(".slider[data-value]").prop("value");
         beg = parseInt(beg.replace(":", ""), 10);
         end = parseInt(end.replace(":", ""), 10);
         temp = parseFloat(temp);
