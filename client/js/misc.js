@@ -85,7 +85,7 @@
     when: null,
     thingid: null,
     password: null,
-    debug: false,
+    debug: true,
     tolerance_ms: 30000,
     expect_cmd_result: false,
     msg_update_expect_cmd_result_s: 7,
@@ -157,6 +157,9 @@
     else {
       $(control_containers.debug).hide();
     }
+
+    // programs
+    Display.gen_program_bars();
 
     $(controls.password).click(function() {
 
@@ -258,6 +261,47 @@
   var Display = {
 
     last_updated_timeout : null,
+
+    gen_program_bars : function() {
+
+      //sld = ;
+      //sld.appendTo( $("#daily-programs") );
+      for (i=0; i<96; i++) {
+
+        if (i%4 == 0) {
+          hour_cnt = $("<div></div>")
+                       .addClass("daily-hour")
+                       .appendTo("#daily-programs");
+          hour = $("<div></div>")
+                   .appendTo(hour_cnt);
+          hour_pad = (i/4).toString();
+          hour_pad = (hour_pad.length==2) ? hour_pad : "0"+hour_pad;
+          $("<div>" + hour_pad + "h</div>")
+            .addClass("daily-hour-label")
+            .appendTo(hour_cnt);
+        }
+
+        quarter = $("<div></div>")
+                    .addClass("daily-quarter")
+                    .appendTo(hour);
+
+        $("<div></div>")
+          .appendTo(quarter)
+          .slider({ "orientation": "vertical",
+                     "min": 15,
+                     "max": 30,
+                     "ticks": [15,20,25,30],
+                     "reversed": true,
+                     "selection": "after",
+                     "ticks_labels": (i%4==3) ? ["off", "20°", "25°", "30°"] : [],
+                     "step": 0.1,
+                     "value": 15,
+                     "tooltip": "show",
+                     "tooltip_position": "left" });
+
+      } // /gen_program_bars
+
+    },
 
     draw_programs : function(drawNew) {
 
@@ -869,8 +913,9 @@
     },
 
     debug : function() {
+      // Action associated to the debug button.
       Logger.log('Control.debug', 'this is the debug action');
-      Control.read_status();
+      //Control.read_status();
     },
 
     req : function() {

@@ -166,3 +166,44 @@ body {
   font-size: 100%;
   text-align: right;
 }
+
+#page-programs {}
+
+#daily-programs {
+  /*background-color: red;*/
+  /*width: 100000px;*/
+  /*white-space: nowrap;*/
+  /*display: inline-block;*/
+  /*width: 500px;*/
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+#daily-programs .slider {
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  height: 200px;
+}
+
+#daily-programs .daily-hour {
+  /*border: 1px solid green;*/
+  display: inline-block;
+  padding-right: 40px;
+  padding-bottom: 10px;
+}
+
+#daily-programs .daily-hour-label {
+  font-size: 150%;
+  text-align: center;
+}
+
+#daily-programs .daily-quarter {
+  /*border: 1px solid blue;*/
+  display: inline-block;
+}
