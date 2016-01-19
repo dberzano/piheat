@@ -132,7 +132,7 @@ body {
 }
 
 .prog-head .slider-container {
-  margin-top: 15px;
+  margin-top: 0px;
   margin-bottom: -5px;
   margin-left: 20px;
   margin-right: 20px;
@@ -165,4 +165,20 @@ body {
   margin-top: 7px;
   font-size: 100%;
   text-align: right;
+}
+
+#programs-summary-container {
+  margin-top: 20px;
+}
+
+#programs-summary .progress-bar-info {
+  /*background-color: #D3AFE7;*/
+  opacity: 0.5;
+  /*border: 1px solid red;*/
+  /*border-collapse: collapse;*/
+  /*background-color: yellow;*/
+}
+
+#programs-summary .progress-bar-warning {
+  /*background-color: #FFD022;*/
 }

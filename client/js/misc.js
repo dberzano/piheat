@@ -282,12 +282,82 @@
         });
 
       }
-      CurrentStatus.new_program.sort(function(a, b) {return a.begin-b.begin});
+
+      // Sort programs.
+      CurrentStatus.new_program.sort(function(a, b) {
+        return (a.begin-b.begin)*10000+(a.end-b.end);
+      });
+
+      // Normalize ranges.
+      norm_ranges = [];
+      $.each(CurrentStatus.new_program, function(key, item) {
+        prev_range = (key == 0) ? {begin:0, end:0} : norm_ranges[norm_ranges.length-1];
+
+        on_range = { begin: (item.begin < prev_range.end) ? prev_range.end : item.begin,
+                     end: item.end,
+                     temp: item.temp };
+
+        off_range = { begin: prev_range.end,
+                      end: item.begin,
+                      temp: -999 };
+
+        if (off_range.end > off_range.begin) norm_ranges.push(off_range);
+        if (on_range.end > on_range.begin) norm_ranges.push(on_range);
+
+      });
+      // Close off range.
+      off_range = { begin: (norm_ranges.length > 0) ? norm_ranges[norm_ranges.length-1].end : 0,
+                    end: 2359,
+                    temp: -999 };
+      if (off_range.end > off_range.begin) norm_ranges.push(off_range);
+
+      // $.each(norm_ranges, function(k,v) {
+      //   Logger.log('Display.draw_programs', ">> " + v.temp + " >> " + v.begin + "-->" + v.end);
+      // });
+
+
+
+        // Draw the programs summary
+        //                        <div class="progress-bar progress-bar-success" style="width: 35%">
+                                //   <span class="">35% Complete (success)</span>
+                                // </div>
+        // $("<div></div>")
+        //   .addClass("progress-bar progress-bar-danger")
+        //   .css("width", "35%")
+        //   .appendTo("#programs-summary");
 
       Logger.log('Display.draw_programs', 'Drawing programs');
 
+      // Clear all
       $(texts.progs).empty();
       $(texts.prog_title).empty();
+      $("#programs-summary").empty();
+
+      // Draw programs summary
+      $.each(norm_ranges, function(k,v) {
+        beg = new Date();
+        beg.setUTCHours(parseInt(v.begin/100));
+        beg.setUTCMinutes(v.begin%100);
+        end = new Date();
+        end.setUTCHours(parseInt(v.end/100));
+        end.setUTCMinutes(v.end%100);
+        //Logger.log('Display.draw_programs', ">> " + v.temp + " >> " + beg + "-->" + end);
+        diff_pct = (end-beg) / 864000;
+
+        pb = $("<div></div>")
+               .addClass("progress-bar")
+               .addClass( (v.temp == -999) ? "progress-bar-info" : "progress-bar-success" )
+               .css("width", diff_pct+"%")
+               .appendTo("#programs-summary");
+        $("<span></span>")
+          .text((v.temp != -999) ? v.temp : "")
+          .appendTo(pb);
+
+        console.log( $("#programs-summary").html() );
+        // console.log( $("#programs-summary") )
+
+        Logger.log('Display.draw_programs', ">> " + v.temp + " >> " + diff_pct);
+      });
 
       tpl = $(templates.prog_line).clone();
       tpl.removeAttr("id");
@@ -333,6 +403,14 @@
         Logger.log("<click event>", "After: " + JSON.stringify( CurrentStatus.new_program ));
       });
 
+      $.each(CurrentStatus.new_program, function(key, item) {
+        Logger.log("Display.draw_programs",
+                   "This is a program: " + item.begin.toString() + " ---> " +
+                                         + item.end.toString());
+      });
+
+      console.log( $("#programs-summary").html() );
+
       tb = $("<table></table>").addClass("table").appendTo(texts.progs);
       $.each(CurrentStatus.new_program, function(key, item) {
 
@@ -373,11 +451,14 @@
 
       });
 
+      console.log( $("#programs-summary").html() );
+
       if ($(tb).is(":empty")) {
         tb.replaceWith( $(templates.prog_empty).clone().show() );
       }
 
       CurrentStatus.redraw_programs = false;
+      console.log( $("#programs-summary").html() );
     },
 
     draw_status : function() {
