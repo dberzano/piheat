@@ -162,7 +162,16 @@ body {
 }
 
 .piheat-newtemp-container {
-  margin-top: 7px;
-  font-size: 100%;
+  margin-top: 2px;
+  font-size: 170%;
   text-align: right;
+}
+
+#piheat-newtemp {
+  font-weight: bold;
+}
+
+#piheat-newtemp > small {
+  font-size: 70%;
+  font-weight: normal;
 }
