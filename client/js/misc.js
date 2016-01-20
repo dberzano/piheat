@@ -298,7 +298,9 @@
       tpl.find(".clockpicker").clockpicker();
       sld = tpl.find(".slider").slider();
       sld.on("change", function(ev) {
-          $("#piheat-newtemp").text(ev.value.newValue);
+          uni = parseInt(ev.value.newValue);
+          dec = Math.round((ev.value.newValue-uni)*10);
+          $("#piheat-newtemp").html(uni + "<small>" + dec + "</small>");
         });
 
       // Immediately fire the change event by setting the value.
