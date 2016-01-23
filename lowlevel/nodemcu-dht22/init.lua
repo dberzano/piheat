@@ -11,7 +11,7 @@ end
 
 for k,v in pairs(l) do
   if k == user_script then
-    print("*** About to load user script. Abort within 3 sec with tmr.stop(0) ***")
+    print("*** About to load user script. Abort within 3 sec with tmr.unregister(0) ***")
     tmr.alarm(0, 3000, 0, function()
       print("Loading user script...")
       dofile(user_script)
