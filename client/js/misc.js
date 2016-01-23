@@ -815,7 +815,7 @@
       now = new Date();
       later = new Date(now);
       later.setHours(later.getHours()+2)
-      temp = parseFloat( $(".prog-head .slider[data-value]").data("value") );
+      temp = parseFloat($(".prog-head").find(".slider[data-value]").prop("value"));
       ovr = Timespan.create(now, later);
       ovr.status = true;
       ovr.temp = temp;
