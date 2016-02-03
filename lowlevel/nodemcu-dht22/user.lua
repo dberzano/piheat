@@ -80,8 +80,8 @@ function loop()
 
   if iserr then
     nerr = nerr + 1
-    print("We have had "..nerr.."/5 consecutive errors")
-    if nerr == 5 then
+    print("We have had "..nerr.."/3 consecutive errors")
+    if nerr == 3 then
       -- Just reboot.
       cond_dsleep()
       nerr = 0
@@ -90,6 +90,7 @@ function loop()
 
   if wifi.sta.status() == 5 then
 
+    iserr = true
     getsensor()
     if humi == nil then
       return
