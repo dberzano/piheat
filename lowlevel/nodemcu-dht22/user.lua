@@ -90,6 +90,7 @@ function loop()
 
   if wifi.sta.status() == 5 then
 
+    iserr = true
     getsensor()
     if humi == nil then
       return
