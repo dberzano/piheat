@@ -85,6 +85,7 @@ function loop()
       -- Just reboot.
       cond_dsleep()
       nerr = 0
+      return
     end
   end
 
@@ -110,7 +111,7 @@ function loop()
               -- Otherwise we might do it too early and close the connection.
               iserr = false
               cond_dsleep()
-              end)
+            end)
     conn:dns(host,
              function(conn, ip)
                conn:connect(80, ip)
