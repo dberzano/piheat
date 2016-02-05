@@ -26,15 +26,15 @@ a=0
 while(i(e)==0)do end
 end
 for e=1,16,1 do
-if(l[e]>4)then
+if(l[e]>3)then
 o=o+2^(16-e)end
 end
 for e=1,16,1 do
-if(l[e+16]>4)then
+if(l[e+16]>3)then
 d=d+2^(16-e)end
 end
 for e=1,8,1 do
-if(l[e+32]>4)then
+if(l[e+32]>3)then
 r=r+2^(8-e)end
 end
 t=(bit.band(o,255)+bit.rshift(o,8)+bit.band(d,255)+bit.rshift(d,8))t=bit.band(t,255)if d>32768 then
