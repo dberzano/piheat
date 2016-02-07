@@ -31,7 +31,7 @@ gpio_errled = 6
 temp = 0
 humi = 0
 
--- Number of consecutive errors (HTTP, or Wi-Fi)
+-- Number of consecutive errors (HTTP, Wi-Fi, DHT22 reading)
 nerr = 0
 iserr = false
 
@@ -84,6 +84,7 @@ function getsensor()
 end
 
 function cond_dsleep()
+  nerr = 0
   if dsleep_enabled then
     print("Enabling deep sleep for "..dsleep_interval_us.." us...")
     tmr.unregister(0)
@@ -108,7 +109,6 @@ function loop()
       -- Just reboot.
       siren(5)
       cond_dsleep()
-      nerr = 0
       return
     else
       siren(1)
