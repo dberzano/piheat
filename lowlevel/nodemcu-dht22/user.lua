@@ -21,6 +21,7 @@ sleep_tries_ms = 7000
 
 -- Connections
 gpio_dht    = 4
+gpio_dhtpwr = 5
 gpio_errled = 6
 
 -- dweet.io thing id
@@ -66,12 +67,19 @@ function siren(iters)
   end
 end
 
--- DHT22 sensor logic
+-- DHT22 sensor logic.
+-- Works around DHT22 problems by turning it on only before reading.
 function getsensor()
+  print("DHT22: powering up")
+  gpio.mode(gpio_dhtpwr, gpio.OUTPUT)
+  gpio.write(gpio_dhtpwr, gpio.HIGH)
+  tmr.delay(1100000)
+  print("DHT22: reading")
   DHT = require("dht22_min")
   DHT.read(gpio_dht)
   temp = DHT.getTemperature()
   humi = DHT.getHumidity()
+  gpio.write(gpio_dhtpwr, gpio.LOW)
 
   if humi == nil then
     print("DHT22: error reading")
