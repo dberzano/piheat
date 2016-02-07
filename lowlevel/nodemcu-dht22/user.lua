@@ -19,8 +19,13 @@ dsleep_interval_us = 60000000
 -- Sleep between retries (and first attempt too)
 sleep_tries_ms = 7000
 
+-- Connections
+gpio_dht    = 4
+
 -- dweet.io thing id
 --dweet_thing_id = "@DWEET_THING_ID@"
+
+-- End of user configuration
 
 temp = 0
 humi = 0
@@ -46,7 +51,7 @@ end
 -- DHT22 sensor logic
 function getsensor()
   DHT = require("dht22_min")
-  DHT.read(4)
+  DHT.read(gpio_dht)
   temp = DHT.getTemperature()
   humi = DHT.getHumidity()
 
