@@ -21,6 +21,7 @@ sleep_tries_ms = 7000
 
 -- Connections
 gpio_dht    = 4
+gpio_errled = 6
 
 -- dweet.io thing id
 --dweet_thing_id = "@DWEET_THING_ID@"
@@ -46,6 +47,23 @@ end
 -- Debug print
 function dbg(msg)
   --print("DEBUG: "..msg)
+end
+
+-- Blink led for signalling errors.
+function siren(iters)
+  lowdelay=0
+  gpio.mode(gpio_errled, gpio.OUTPUT)
+  gpio.write(gpio_errled, gpio.LOW)
+  for i=0,iters,1
+  do
+    gpio.write(gpio_errled, gpio.HIGH)
+    tmr.delay(50000)
+    gpio.write(gpio_errled, gpio.LOW)
+    if lowdelay > 0 then
+      tmr.delay(lowdelay)
+    end
+    lowdelay=750000
+  end
 end
 
 -- DHT22 sensor logic
@@ -88,9 +106,12 @@ function loop()
     print("We have had "..nerr.."/3 consecutive errors")
     if nerr == 3 then
       -- Just reboot.
+      siren(5)
       cond_dsleep()
       nerr = 0
       return
+    else
+      siren(1)
     end
   end
 
