@@ -605,8 +605,8 @@ class PiHeat(Daemon):
       delta = (TimeStamp()-TimeStamp.from_iso_str(val["with"][0]["created"])).total_seconds()*1000
       if delta > self._temp_tolerance_ms:
         raise Exception("temperature data is too old (> %d ms)" % self._temp_tolerance_ms)
-      self.temp = val["with"][0]["content"]["temp"];
-      self._humi = val["with"][0]["content"].get("humi", None);
+      self.temp = float(val["with"][0]["content"]["temp"]);
+      self._humi = float(val["with"][0]["content"].get("humi", None));
       self._sensors_errors = 0
     except Exception as e:
       self._sensors_errors = self._sensors_errors + 1
