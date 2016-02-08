@@ -19,13 +19,20 @@ dsleep_interval_us = 60000000
 -- Sleep between retries (and first attempt too)
 sleep_tries_ms = 7000
 
+-- Connections
+gpio_dht    = 4
+gpio_dhtpwr = 5
+gpio_errled = 6
+
 -- dweet.io thing id
 --dweet_thing_id = "@DWEET_THING_ID@"
+
+-- End of user configuration
 
 temp = 0
 humi = 0
 
--- Number of consecutive errors (HTTP, or Wi-Fi)
+-- Number of consecutive errors (HTTP, Wi-Fi, DHT22 reading)
 nerr = 0
 iserr = false
 
@@ -43,12 +50,36 @@ function dbg(msg)
   --print("DEBUG: "..msg)
 end
 
--- DHT22 sensor logic
+-- Blink led for signalling errors.
+function siren(iters)
+  lowdelay=0
+  gpio.mode(gpio_errled, gpio.OUTPUT)
+  gpio.write(gpio_errled, gpio.LOW)
+  for i=0,iters,1
+  do
+    gpio.write(gpio_errled, gpio.HIGH)
+    tmr.delay(50000)
+    gpio.write(gpio_errled, gpio.LOW)
+    if lowdelay > 0 then
+      tmr.delay(lowdelay)
+    end
+    lowdelay=750000
+  end
+end
+
+-- DHT22 sensor logic.
+-- Works around DHT22 problems by turning it on only before reading.
 function getsensor()
+  print("DHT22: powering up")
+  gpio.mode(gpio_dhtpwr, gpio.OUTPUT)
+  gpio.write(gpio_dhtpwr, gpio.HIGH)
+  tmr.delay(1100000)
+  print("DHT22: reading")
   DHT = require("dht22_min")
-  DHT.read(4)
+  DHT.read(gpio_dht)
   temp = DHT.getTemperature()
   humi = DHT.getHumidity()
+  gpio.write(gpio_dhtpwr, gpio.LOW)
 
   if humi == nil then
     print("DHT22: error reading")
@@ -61,6 +92,7 @@ function getsensor()
 end
 
 function cond_dsleep()
+  nerr = 0
   if dsleep_enabled then
     print("Enabling deep sleep for "..dsleep_interval_us.." us...")
     tmr.unregister(0)
@@ -83,9 +115,11 @@ function loop()
     print("We have had "..nerr.."/3 consecutive errors")
     if nerr == 3 then
       -- Just reboot.
+      siren(5)
       cond_dsleep()
-      nerr = 0
       return
+    else
+      siren(1)
     end
   end
 
