@@ -1,9 +1,12 @@
 --
--- Remember to connect GPIO16 and RST to enable deep sleep
+-- Remember to connect GPIO16 and RST to enable deep sleep.
+-- Configuration is in private.lua, please refer to the example.
 --
 
---wifi_SSID = "@WIFI_SSID@"
---wifi_password = "@WIFI_PASSWORD@"
+--
+-- Non-private configuration
+--
+
 -- B,G,N. B has the highest range (though the lowest rate)
 wifi_signal_mode = wifi.PHYMODE_B
 
@@ -24,10 +27,10 @@ gpio_dht    = 4
 gpio_dhtpwr = 5
 gpio_errled = 6
 
--- dweet.io thing id
---dweet_thing_id = "@DWEET_THING_ID@"
+--
+-- End of non-private configuration
+--
 
--- End of user configuration
 
 temp = 0
 humi = 0
@@ -47,6 +50,7 @@ end
 
 -- Debug print
 function dbg(msg)
+  -- Uncomment the following line to enable debug messages.
   --print("DEBUG: "..msg)
 end
 
@@ -131,11 +135,17 @@ function loop()
       return
     end
 
-    host = "dweet.io"
-    path = "/dweet/for/"..dweet_thing_id
+    -- Split URL into host and path
+    host = string.gsub(post_url, "^.*://", "")
+    path = string.gsub(host, "^[^/]*", "")
+    host = string.gsub(host, "/.*", "")
 
-    -- Send data to dweet.io
-    print("Sending data for thing "..dweet_thing_id)
+    -- Put data into the path string
+    path = string.gsub(path, "@@TEMP@@", (temp/10).."."..(temp%10))
+    path = string.gsub(path, "@@HUMI@@", (humi/10).."."..(humi%10))
+
+    -- Send data
+    print("Posting to URL http://"..host..path)
     iserr = true
     conn = net.createConnection(net.TCP, 0)
     conn:on("receive",
@@ -149,15 +159,12 @@ function loop()
     conn:dns(host,
              function(conn, ip)
                conn:connect(80, ip)
-               req = "POST "..path.."?"..
-                     "temp="..(temp/10).."."..(temp%10).."&"..
-                     "humi="..(humi/10).."."..(humi%10).."&"..
-                     " HTTP/1.1\r\n"..
+               req = "POST "..path.." HTTP/1.1\r\n"..
                      "Host: "..host.."\r\n"..
                      "Content-Type: application/x-www-form-urlencoded\r\n"..
                      "Connection: keep-alive\r\n"..
                      "Accept: */*\r\n\r\n"
-               conn:send(req)      
+               conn:send(req)
                dbg("=== REQUEST ===\n"..req.."\n=== END REQUEST ===")
              end)
 
