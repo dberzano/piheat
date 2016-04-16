@@ -1,4 +1,10 @@
--- Private data
-wifi_SSID = "@WIFI_SSID@"
-wifi_password = "@WIFI_PASSWORD@"
-dweet_thing_id = "@DWEET_THING_ID@-sensors"
+-- Wi-Fi Configuration
+wifi_SSID = "My WiFi SSID"
+wifi_password = "My Secret WiFi Password"
+
+-- Post URL. The following URL will be called with the HTTP POST method.
+-- The URL depends on your data storage provider.
+-- Note that @@TEMP@@ and @@HUMI@@ represent parameters substituted with the
+-- actual values when sending.
+-- Limitations: HTTPS is not supported, and no port can be specified (defaults to 80).
+post_url = "http://dweet.io/dweet/for/ThisIsAThingID?temp=@@TEMP@@&humi=@@HUMI@@"
