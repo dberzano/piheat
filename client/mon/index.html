@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Temperature/humidity monitor</title>
+  <!-- My style sheet -->
+  <link rel="stylesheet" href="../css/mon.css">
+  <!-- jQuery -->
+  <script src="../js/jquery-2.1.3.min.js"></script>
+  <!-- jQuery throttle/debounce from https://github.com/cowboy/jquery-throttle-debounce/ -->
+  <script src="../js/jquery.ba-throttle-debounce.min.js"></script>
+  <!-- Latest compiled and minified JavaScript for Bootstrap -->
+  <script src="../js/bootstrap.min.js"></script>
+  <!-- sprintf from https://github.com/alexei/sprintf.js/ -->
+  <script src="../js/sprintf.js"></script>
+  <!-- Waypoints/Sticky -->
+  <script src="../js/jquery.waypoints.min.js"></script>
+  <script src="../js/sticky.min.js"></script>
+  <!-- Google Charts -->
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <!-- My script -->
+  <script src="../js/mon-conf.js"></script>
+  <script src="../js/mon.js"></script>
+  <!-- For mobile devices -->
+  <meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+</head>
+
+<body>
+
+<div id="sensor_model">
+  <!-- http://stackoverflow.com/questions/5645986/two-column-div-layout-with-fluid-left-and-fixed-right-column -->
+  <h2>Title Goes Here</h2>
+  <div class="wrapper">
+    <div class="chart_row">
+      <div class="trend_box"><div class="chart_temp"></div></div>
+      <div class="gauge_box"><div class="gauge_temp"></div></div>
+      <div class="cleared"></div>
+    </div>
+    <div class="chart_row">
+      <div class="trend_box"><div class="chart_humi"></div></div>
+      <div class="gauge_box"><div class="gauge_humi"></div></div>
+      <div class="cleared"></div>
+    </div>
+  </div>
+</div>
+
+<div id="sensors_container"></div>
+
+<div class="fliptip">Tip: rotate the device to show trends.</div>
+
+</body>
+
+</html>

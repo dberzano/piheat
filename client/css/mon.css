@@ -1,0 +1,68 @@
+@import url(https://fonts.googleapis.com/css?family=Montserrat);
+
+html { margin: 0px; }
+
+body { margin: 0px;
+       background-color: white;
+       font-family: "Montserrat", sans-serif; }
+
+h2 { background-color: #95a5a6;  /* flat: concrete */
+     color: white;
+     margin: 0;
+     font-size: 120%;
+     padding-top: 4px;
+     padding-left: 4px;
+     height: 37px;
+     width: 100%;
+     border-top: 2px solid white;
+     border-bottom: 2px solid white;
+     position: relative;
+     z-index: 999;
+     box-sizing: border-box;
+     white-space: nowrap; }
+.h2_sticky:nth-of-type(1) h2 { background-color: #e74c3c; }  /* flat: alizarin */
+.h2_sticky:nth-of-type(3) h2 { background-color: #f39c12; }  /* flat: orange */
+.h2_sticky:nth-of-type(5) h2 { background-color: #1abc9c; }  /* flat: turquoise */
+.h2_sticky:nth-of-type(7) h2 { background-color: #3498db; }  /* flat: peter river */
+.h2_sticky:nth-of-type(9) h2 { background-color: #9b59b6; }  /* flat: amethyst */
+.h2_sticky:first-of-type { margin-top: 0; }
+.h2_sticky { margin-top: 20px;
+             margin-bottom: 10px; }
+h2.stuck { position: fixed;
+           top: -2px; }
+
+.gauge_box svg text { font-family: "Montserrat", sans-serif; }
+
+#sensor_model { display: none; }
+
+@media (min-width: 600px) {
+  /* both charts and gauges */
+  .chart_row { margin-right: 150px; }
+  .trend_box { float:left;
+               width: 100%; }
+  .gauge_box { float: right;
+               margin-right: -150px;
+               margin-top: 25px; }
+  .cleared { clear: both; }
+  .fliptip { display: none; }
+}
+
+@media (max-width: 599px) {
+  .trend_box { display: none; }
+  .cleared { display: none; }
+  .wrapper { width: 100%;
+             text-align: center; }
+  .chart_row { display: inline-block; }
+  .gauge_box { display: inline-block; }
+  .fliptip { background-color: #ecf0f1;  /* flat: clouds */
+             color: #16a085;  /* flat: green sea */
+             position: fixed;
+             text-align: center;
+             font-size: 90%;
+             bottom: 0px;
+             width: 100%;
+             padding-top: 3px;
+             padding-bottom: 3px;
+             border-top: 2px solid white; }
+  body { margin-bottom: 30px; }
+}
