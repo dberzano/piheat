@@ -296,8 +296,6 @@
       var head = dom_obj.find("h2").first();
       head.text(name);
       dom_obj.children().appendTo("#sensors_container");
-      sticky = new Waypoint.Sticky({ "element": head,
-                                     "wrapper": '<div class="h2_sticky" />' });
     };
 
     dom();
