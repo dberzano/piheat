@@ -1,10 +1,9 @@
--- Wi-Fi Configuration
-wifi_SSID = "My WiFi SSID"
-wifi_password = "My Secret WiFi Password"
+wifi_SSID = "<your_wifi_ssid_here>"
+wifi_password = "<your_wifi_pwd_here>"
 
 -- Post URL. The following URL will be called with the HTTP POST method.
 -- The URL depends on your data storage provider.
--- Note that @@TEMP@@ and @@HUMI@@ represent parameters substituted with the
--- actual values when sending.
+-- Note that @@TEMP@@, @@HUMI@@ and @@VOLT@@ are literal and will be replaced
+-- with the actual values when sending.
 -- Limitations: HTTPS is not supported, and no port can be specified (defaults to 80).
-post_url = "http://dweet.io/dweet/for/ThisIsAThingID?temp=@@TEMP@@&humi=@@HUMI@@"
+post_url = "http://data.sparkfun.com/input/<your_sparkfun_uuid>?private_key=<your_sparkfun_key>&humi=@@HUMI@@&temp=@@TEMP@@&volt=@@VOLT@@"

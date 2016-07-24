@@ -52,13 +52,17 @@
     var lock_chart = false;
     var chart_temp = null;
     var chart_humi = null;
+    var chart_volt = null;
     var sel_timestamp = null;
     var gauge_temp = null;
     var gauge_humi = null;
+    var gauge_volt = null;
     var data_temp = null;
     var data_humi = null;
+    var data_volt = null;
     var evt_temp = null;
     var evt_humi = null;
+    var evt_volt = null;
     var dom_id = null;
 
     var get = function() {
@@ -71,8 +75,9 @@
           $.each(data, function(index, val) {
             var entry = { "timestamp": new Date(val.timestamp),
                           "temp": parseFloat(val.temp),
-                          "humi": parseInt(val.humi) };
-            if (!isvalid(entry, ["timestamp", "temp", "humi"])) return true;
+                          "humi": parseInt(val.humi),
+                          "volt": "volt" in val ? parseFloat(val.volt) : -1 };
+            if (!isvalid(entry, ["timestamp", "temp", "humi", "volt"])) return true;
             new_entries.push(entry);
           });
           new_entries.sort(function(a, b) { return b.timestamp-a.timestamp; });
@@ -92,6 +97,7 @@
       lock_chart = true;
       var temp_format = new google.visualization.NumberFormat({ "fractionDigits": 1, "suffix": "°C" });
       var humi_format = new google.visualization.NumberFormat({ "fractionDigits": 0, "suffix": "%" });
+      var volt_format = new google.visualization.NumberFormat({ "fractionDigits": 2, "suffix": "V" });
       data_temp = new google.visualization.DataTable();
       data_temp.addColumn("datetime", "Date/time");
       data_temp.addColumn({ "type": "string", "role": "annotation" });
@@ -99,7 +105,11 @@
       data_humi = new google.visualization.DataTable();
       data_humi.addColumn("datetime", "Date/time");
       data_humi.addColumn({ "type": "string", "role": "annotation" });
-      data_humi.addColumn("number", "Relative humidity");
+      data_humi.addColumn("number", "Relative humidity [%]");
+      data_volt = new google.visualization.DataTable();
+      data_volt.addColumn("datetime", "Date/time");
+      data_volt.addColumn({ "type": "string", "role": "annotation" });
+      data_volt.addColumn("number", "Input tension [V]");
 
       // Rebin (keep rightmost timestamp per bin)
       var rebinned = [];
@@ -108,6 +118,7 @@
         if (!rebin_next) return;
         rebin_next.temp /= rebin_next.count;
         rebin_next.humi /= rebin_next.count;
+        rebin_next.volt /= rebin_next.count;
         delete rebin_next.count;
         rebinned.push(rebin_next);
         rebin_next = null;
@@ -120,6 +131,7 @@
         else {
           rebin_next.temp += entries[i].temp;
           rebin_next.humi += entries[i].humi;
+          rebin_next.volt += entries[i].volt;
           rebin_next.count++;
         }
       }
@@ -130,11 +142,13 @@
       for (i=Math.min(rebinned.length, chart_max)-1; i>=0; i--) {
         data_temp.addRow([ rebinned[i].timestamp, null, rebinned[i].temp ]);
         data_humi.addRow([ rebinned[i].timestamp, null, rebinned[i].humi ]);
+        data_volt.addRow([ rebinned[i].timestamp, null, rebinned[i].volt ]);
       }
 
       var now = new Date();
       data_temp.addRow([ now, "this is now", null ]);
       data_humi.addRow([ now, "this is now", null ]);
+      data_volt.addRow([ now, "this is now", null ]);
 
       var sel_all = data_temp.getFilteredRows([{ "column": 0,
                                                  "minValue": new Date(sel_timestamp-bin_timespan),
@@ -154,6 +168,7 @@
 
       temp_format.format(data_temp, 2);
       humi_format.format(data_humi, 2);
+      volt_format.format(data_volt, 2);
       var opts = {
         "hAxis": { "viewWindow": { "max": new Date(now-(0.05*(data_temp.getValue(0, 0)-now))),
                                    "min": data_temp.getValue(0, 0) },
@@ -174,6 +189,7 @@
         "chartArea": { "top": 10, "left": 100, "height": 180, "width": "100%" }
       };
 
+      // Draw temp chart
       chart_temp = chart_temp ? chart_temp :
                                 new google.visualization.AreaChart(document.getElementById("chart_temp_"+dom_id));
       chart_temp.draw(data_temp, $.extend({ "colors": [ flat.nephritis ],
@@ -185,13 +201,15 @@
         function() {
           var sel = chart_temp.getSelection();
           chart_humi.setSelection(sel);
+          chart_volt.setSelection(sel);
           sel_timestamp = sel.length && "row" in sel[0] ? data_temp.getValue(sel[0].row, 0) : null;
         });
 
+      // Draw humi chart
       chart_humi = chart_humi ? chart_humi :
                                 new google.visualization.AreaChart(document.getElementById("chart_humi_"+dom_id));
       chart_humi.draw(data_humi, $.extend({ "colors": [ flat.wisteria ],
-                                            "vAxis": { "title": "Relative humidity",
+                                            "vAxis": { "title": "Relative humidity [%]",
                                                        "textStyle": { "color": flat.wisteria } } }, opts));
       if (evt_humi) google.visualization.events.removeListener(evt_humi);
       if (sel_ref) chart_humi.setSelection(sel_ref);
@@ -199,17 +217,37 @@
         function() {
           var sel = chart_humi.getSelection();
           chart_temp.setSelection(sel);
+          chart_volt.setSelection(sel);
           sel_timestamp = sel.length && "row" in sel[0] ? data_humi.getValue(sel[0].row, 0) : null;
+        });
+
+      // Draw volt chart
+      chart_volt = chart_volt ? chart_volt :
+                                new google.visualization.AreaChart(document.getElementById("chart_volt_"+dom_id));
+      chart_volt.draw(data_volt, $.extend({ "colors": [ flat.pumpkin ],
+                                            "vAxis": { "title": "Input tension [V]",
+                                                       "textStyle": { "color": flat.pumpkin } } }, opts));
+      if (evt_volt) google.visualization.events.removeListener(evt_volt);
+      if (sel_ref) chart_volt.setSelection(sel_ref);
+      evt_volt = google.visualization.events.addListener(chart_volt, "select",
+        function() {
+          var sel = chart_volt.getSelection();
+          chart_temp.setSelection(sel);
+          chart_humi.setSelection(sel);
+          sel_timestamp = sel.length && "row" in sel[0] ? data_volt.getValue(sel[0].row, 0) : null;
         });
 
       gauge_temp = gauge_temp ? gauge_temp :
                                 new google.visualization.Gauge(document.getElementById("gauge_temp_"+dom_id));
       gauge_humi = gauge_humi ? gauge_humi :
                                 new google.visualization.Gauge(document.getElementById("gauge_humi_"+dom_id));
+      gauge_volt = gauge_volt ? gauge_volt :
+                                new google.visualization.Gauge(document.getElementById("gauge_volt_"+dom_id));
       var gauge_temp_data = new google.visualization.DataTable();
       var gauge_humi_data = new google.visualization.DataTable();
+      var gauge_volt_data = new google.visualization.DataTable();
       var gauge_opts = {};
-      $.each([ gauge_temp_data, gauge_humi_data ], function(i, g) {
+      $.each([ gauge_temp_data, gauge_humi_data, gauge_volt_data ], function(i, g) {
         g.addColumn("string", "Label");
         g.addColumn("number", "Value");
         if (!entries.length) g.addRow([ "Wait...", -10 ]);
@@ -218,6 +256,7 @@
       if (!gauge_temp_data.getNumberOfRows()) {
         gauge_temp_data.addRow([ "Temp", entries[0].temp ]);
         gauge_humi_data.addRow([ "Humi", entries[0].humi ]);
+        gauge_volt_data.addRow([ "Volt", entries[0].volt ]);
       }
       temp_format.format(gauge_temp_data, 1);
       gauge_temp.draw(gauge_temp_data,
@@ -231,6 +270,13 @@
         $.extend({ "width": 150,
                    "height": 150,
                    "minorTicks": 5 }, gauge_opts));
+      volt_format.format(gauge_volt_data, 1);
+      gauge_volt.draw(gauge_volt_data,
+        $.extend({ "min":        2.0, "max":      4.0,
+                   "greenFrom":  3.1, "greenTo":  4.0, "greenColor":  flat.nephritis,
+                   "yellowFrom": 2.7, "yellowTo": 3.1, "yellowColor": flat.peter_river,
+                   "redFrom":    2.0, "redTo":    2.7, "redColor":    flat.pumpkin,
+                   "width":      150, "height":   150, "minorTicks": 5 }, gauge_opts));
 
       lock_chart = false;
     };
@@ -243,8 +289,10 @@
                       .show();
       dom_obj.find(".chart_temp").attr("id", "chart_temp_"+dom_id);
       dom_obj.find(".chart_humi").attr("id", "chart_humi_"+dom_id);
+      dom_obj.find(".chart_volt").attr("id", "chart_volt_"+dom_id);
       dom_obj.find(".gauge_temp").attr("id", "gauge_temp_"+dom_id);
       dom_obj.find(".gauge_humi").attr("id", "gauge_humi_"+dom_id);
+      dom_obj.find(".gauge_volt").attr("id", "gauge_volt_"+dom_id);
       var head = dom_obj.find("h2").first();
       head.text(name);
       dom_obj.children().appendTo("#sensors_container");
