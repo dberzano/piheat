@@ -4,8 +4,9 @@
   var table_max = 15;
   var chart_max = 2500;
   var bin_timespan = 10*60*1000;  // bin data within this interval
-  var oldest = 48*60*60*1000;  // oldest data to request from server
+  var oldest = 24*60*60*1000;  // oldest data to request from server
   var outdated = 5*60*1000;  // data older than this is outdated
+  var oldest_tol = 10*60*1000;  // tolerance for oldest date
 
   // https://flatuicolors.com/
   var flat = { "nephritis":   "#27ae60",    // green
@@ -64,13 +65,14 @@
     var evt_humi = null;
     var evt_volt = null;
     var dom_id = null;
+    var page = 1;
+    var eof = false;
+    var timeout = 45000;
 
     var get = function() {
-      var last_timestamp = entries.length ? entries[0].timestamp.toISOString() :
-                                            nowoffset(-oldest);
-      $.get(url+"?gt[timestamp]="+last_timestamp)
+      $.get(url+"?page="+page)
         .done(function(data) {
-          debug("ok, got %d entries", data.length);
+          debug("%s: ok, page %d has %d entries", name, page, data.length);
           var new_entries = [];
           $.each(data, function(index, val) {
             var entry = { "timestamp": new Date(val.timestamp),
@@ -80,16 +82,47 @@
             if (!isvalid(entry, ["timestamp", "temp", "humi", "volt"])) return true;
             new_entries.push(entry);
           });
-          new_entries.sort(function(a, b) { return b.timestamp-a.timestamp; });
-          entries = new_entries.concat(entries);
+
+          if (!new_entries.length) eof = true; // no more data before this page
+          oldest_ts = new Date().getTime()-oldest;
+          count_new = 0;
+          for (i=0; i<new_entries.length; i++) {
+            a = new_entries[i].timestamp.getTime();
+            if (a <= oldest_ts-oldest_tol) continue;
+            skip = false;
+            for (j=0; j<entries.length; j++) {
+              b = entries[j].timestamp.getTime();
+              if (a == b) { skip = true; break; }
+              else if (a > b) { break; }
+            }
+            if (!skip) { entries.splice(j, 0, new_entries[i]); count_new++; }
+          }
+          count_rm = 0;
+          for (i=entries.length-1; i>=0; i--) {
+            a = entries[i].timestamp.getTime();
+            if (a <= oldest_ts-oldest_tol) { entries.pop(); count_rm++; }
+          }
+          debug("%s: we have %d entries (+%d, -%d)", name, entries.length, count_new, count_rm);
+
+          if (entries.length > 0 && !eof &&
+              entries[entries.length-1].timestamp.getTime() > oldest_ts) {
+            debug("%s: we need more data: next page will be %d", name, page+1);
+            page++;
+            timeout = 0;
+          }
+          else {
+            page = 1;
+            timeout = 45000;
+          }
         })
         .fail(function() {
-          debug("could not load data this time, we'll keep retrying");
+          debug("%s: could not load data this time from page %d, we'll retry in 5 s", name, page);
+          timeout = 5000;
         })
         .always(function() {
           chart();
+          setTimeout(get, timeout);
         });
-      setTimeout(get, 45000);
     };
 
     var chart = function() {
@@ -136,7 +169,7 @@
         }
       }
       push_rebinned();
-      debug("entries before/after rebin: %d/%d", entries.length, rebinned.length);
+      debug("%s: entries before/after rebin: %d/%d", name, entries.length, rebinned.length);
 
       // Take at most chart_max entries
       for (i=Math.min(rebinned.length, chart_max)-1; i>=0; i--) {
