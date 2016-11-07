@@ -25,9 +25,38 @@ h2:nth-of-type(4) { background-color: #3498db; }  /* flat: peter river */
 h2:nth-of-type(5) { background-color: #9b59b6; }  /* flat: amethyst */
 h2:first-of-type { margin-top: 0; }
 h2 { margin-top: 20px;
-     margin-bottom: 10px; }
+     margin-bottom: 0; }
 h2.stuck { position: fixed;
            top: -2px; }
+
+h3 { margin: 0;
+     padding-top: 2px;
+     padding-left: 4px;
+     font-weight: normal;
+     font-size: 80%; }
+h3 > ul { display: inline;
+          padding: 0; }
+h3 ul li { display: inline;
+           padding-left: 2px;
+           padding-right: 2px;
+           list-style-type: none; }
+
+/* text below title with oldest timestamp and control */
+h3:nth-of-type(1) { color: #e74c3c; }  /* flat: alizarin */
+h3:nth-of-type(2) { color: #f39c12; }  /* flat: orange */
+h3:nth-of-type(3) { color: #1abc9c; }  /* flat: turquoise */
+h3:nth-of-type(4) { color: #3498db; }  /* flat: peter river */
+h3:nth-of-type(5) { color: #9b59b6; }  /* flat: amethyst */
+
+/* hover on +/- dates */
+h3 ul li:hover { color: white; cursor: pointer; }
+h3:nth-of-type(1) li:hover { background-color: #e74c3c; }  /* flat: alizarin */
+h3:nth-of-type(2) li:hover { background-color: #f39c12; }  /* flat: orange */
+h3:nth-of-type(3) li:hover { background-color: #1abc9c; }  /* flat: turquoise */
+h3:nth-of-type(4) li:hover { background-color: #3498db; }  /* flat: peter river */
+h3:nth-of-type(5) li:hover { background-color: #9b59b6; }  /* flat: amethyst */
+
+.wrapper { margin-top: 15px; }
 
 .gauge_box svg text { font-family: "Montserrat", sans-serif; }
 
@@ -42,6 +71,7 @@ h2.stuck { position: fixed;
                margin-right: -150px;
                margin-top: 25px; }
   .cleared { clear: both; }
+  h3 { display: block; }
   .fliptip { display: none; }
 }
 
@@ -52,6 +82,7 @@ h2.stuck { position: fixed;
              text-align: center; }
   .chart_row { display: inline-block; }
   .gauge_box { display: inline-block; }
+  h3 { display: none; }
   .fliptip { background-color: #ecf0f1;  /* flat: clouds */
              color: #16a085;  /* flat: green sea */
              position: fixed;

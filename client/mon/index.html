@@ -14,6 +14,8 @@
   <script src="../js/bootstrap.min.js"></script>
   <!-- sprintf from https://github.com/alexei/sprintf.js/ -->
   <script src="../js/sprintf.js"></script>
+  <!-- moment.js - http://momentjs.com/ -->
+  <script src="../js/moment-2.15.2.min.js"></script>
   <!-- Google Charts -->
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <!-- My script -->
@@ -28,6 +30,16 @@
 <div id="sensor_model">
   <!-- http://stackoverflow.com/questions/5645986/two-column-div-layout-with-fluid-left-and-fixed-right-column -->
   <h2>Title Goes Here</h2>
+  <h3>Series starts <span class="time_label"></span> <span class="data_loading">&#x25CF;</span>
+    <ul class="time_controls">
+      <li class="time_plus1d">+1d</li>
+      <li class="time_minus1d">-1d</li>
+      <li class="time_plus1w">+1w</li>
+      <li class="time_minus1w">-1w</li>
+      <li class="time_plus1m">+1m</li>
+      <li class="time_minus1m">-1m</li>
+    </ul>
+  </h3>
   <div class="wrapper">
     <div class="chart_row">
       <div class="trend_box"><div class="chart_temp"></div></div>

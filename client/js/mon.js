@@ -4,7 +4,8 @@
   var table_max = 15;
   var chart_max = 2500;
   var bin_timespan = 10*60*1000;  // bin data within this interval
-  var oldest = 24*60*60*1000;  // oldest data to request from server
+  var oldest_min = 24*60*60*1000;  // minimum value for the oldest parameter
+  var oldest = oldest_min;  // oldest data to request from server (count from now)
   var outdated = 5*60*1000;  // data older than this is outdated
   var oldest_tol = 10*60*1000;  // tolerance for oldest date
 
@@ -50,7 +51,6 @@
   var SensorDisplay = function(name, url) {
 
     var entries = [];
-    var lock_chart = false;
     var chart_temp = null;
     var chart_humi = null;
     var chart_volt = null;
@@ -66,10 +66,27 @@
     var evt_volt = null;
     var dom_id = null;
     var page = 1;
-    var eof = false;
     var timeout = 45000;
+    var timeout_id = null;
+    var loading = false;
 
     var get = function() {
+      if (timeout_id == null) { timeout_id = setTimeout(get, 0); return; }
+
+      // Activates blinking of the loading sign
+      if (!loading) {
+        $("#data_loading_"+dom_id)
+          .bind("fade-cycle", function() {
+            $(this).fadeOut("slow", function() {
+              $(this).fadeIn("slow", function() {
+                $(this).trigger("fade-cycle");
+              });
+            });
+          })
+          .trigger("fade-cycle");
+        loading = true;
+      }
+
       $.get(url+"?page="+page)
         .done(function(data) {
           debug("%s: ok, page %d has %d entries", name, page, data.length);
@@ -83,7 +100,6 @@
             new_entries.push(entry);
           });
 
-          if (!new_entries.length) eof = true; // no more data before this page
           oldest_ts = new Date().getTime()-oldest;
           count_new = 0;
           for (i=0; i<new_entries.length; i++) {
@@ -104,13 +120,16 @@
           }
           debug("%s: we have %d entries (+%d, -%d)", name, entries.length, count_new, count_rm);
 
-          if (entries.length > 0 && !eof &&
+          if (entries.length > 0 && new_entries.length > 0 &&
               entries[entries.length-1].timestamp.getTime() > oldest_ts) {
             debug("%s: we need more data: next page will be %d", name, page+1);
             page++;
             timeout = 0;
           }
           else {
+            // Deactivates blinking of the loading sign
+            loading = false;
+            $("#data_loading_"+dom_id).unbind("fade-cycle");
             page = 1;
             timeout = 45000;
           }
@@ -121,13 +140,11 @@
         })
         .always(function() {
           chart();
-          setTimeout(get, timeout);
+          timeout_id = setTimeout(get, timeout);
         });
     };
 
     var chart = function() {
-      if (lock_chart) return;
-      lock_chart = true;
       var temp_format = new google.visualization.NumberFormat({ "fractionDigits": 1, "suffix": "°C" });
       var humi_format = new google.visualization.NumberFormat({ "fractionDigits": 0, "suffix": "%" });
       var volt_format = new google.visualization.NumberFormat({ "fractionDigits": 2, "suffix": "V" });
@@ -311,7 +328,9 @@
                    "redFrom":    2.0, "redTo":    2.7, "redColor":    flat.pumpkin,
                    "width":      150, "height":   150, "minorTicks": 5 }, gauge_opts));
 
-      lock_chart = false;
+      // Fill time label
+      last_date = moment(entries.length ? entries[entries.length-1].timestamp : new Date());
+      $("#time_label_"+dom_id).text( last_date.calendar().toLowerCase() );
     };
 
     var dom = function() {
@@ -320,12 +339,36 @@
                       .clone()
                       .attr("id", "sensor_"+dom_id)
                       .show();
-      dom_obj.find(".chart_temp").attr("id", "chart_temp_"+dom_id);
-      dom_obj.find(".chart_humi").attr("id", "chart_humi_"+dom_id);
-      dom_obj.find(".chart_volt").attr("id", "chart_volt_"+dom_id);
-      dom_obj.find(".gauge_temp").attr("id", "gauge_temp_"+dom_id);
-      dom_obj.find(".gauge_humi").attr("id", "gauge_humi_"+dom_id);
-      dom_obj.find(".gauge_volt").attr("id", "gauge_volt_"+dom_id);
+      classes = [ "chart_temp", "chart_humi", "chart_volt",
+                  "gauge_temp", "gauge_humi", "gauge_volt",
+                  "data_loading",
+                  "time_label",
+                  "time_plus1d", "time_minus1d",
+                  "time_plus1w", "time_minus1w",
+                  "time_plus1m", "time_minus1m" ];
+      $.each(classes,
+             function(index, label) {
+               dom_obj
+                 .find("."+label)
+                 .attr("id", label+"_"+dom_id)
+                 .click(!label.match(/^time_(plus|minus)/) ? null : function() {
+                   a = label.match(/time_(plus|minus)1([dwm])/);
+                   if (loading && a[1] == "plus") {
+                     debug("%s: not adding data while still loading");
+                     return;
+                   }
+                   if      (a[2] == "d") tdiff = 24*60*60*1000;
+                   else if (a[2] == "w") tdiff = 7*24*60*60*1000;
+                   else if (a[2] == "m") tdiff = 30*24*60*60*1000;
+                   tdiff *= a[1] == "minus" ? -1 : 1;
+                   oldest += tdiff;
+                   if (oldest < oldest_min) oldest = oldest_min;
+                   page = 1;
+                   clearTimeout(timeout_id);
+                   timeout_id = setTimeout(get, 0);
+                   debug("%s: rescale series of %d ms in the %s", name, Math.abs(tdiff), tdiff >= 0 ? "past" : "future");
+                 });
+             });
       var head = dom_obj.find("h2").first();
       head.text(name);
       dom_obj.children().appendTo("#sensors_container");
