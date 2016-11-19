@@ -5,8 +5,12 @@
   var chart_max = 2500;
   var bin_timespan = 10*60*1000;  // bin data within this interval
   var oldest_min = 24*60*60*1000;  // minimum value for the oldest parameter
-  var outdated = 5*60*1000;  // data older than this is outdated
+  var outdated = 10*60*1000;  // data older than this is outdated
   var oldest_tol = 10*60*1000;  // tolerance for oldest date
+  var vmin = 2.7;  // below this voltage reading, the sensor does not work (flat battery)
+  var vmax = 3.7;  // maximum voltage reading at full charge
+  var battery_level_labels = [ "0", "25", "50", "75", "100" ];  // class labels to battery levels
+  var battery_plug_label = "plug";  // class label to power plug indicator
 
   // https://flatuicolors.com/
   var flat = { "nephritis":   "#27ae60",    // green
@@ -332,6 +336,19 @@
       // Fill time label
       last_date = moment(entries.length ? entries[entries.length-1].timestamp : new Date());
       $("#time_label_"+dom_id).text( last_date.calendar().toLowerCase() );
+
+      // Update battery level
+      batt_label = battery_plug_label;
+      if (entries.length && Date.now()-entries[0].timestamp > outdated) {
+        batt_label = "0"
+      }
+      else if (entries.length && entries[0].volt >= 0) {
+        vnorm = Math.max(Math.min((entries[0].volt-vmin)/(vmax-vmin), 1.), 0.);
+        batt_label = battery_level_labels[ Math.round(vnorm*(battery_level_labels.length-1)) ];
+      }
+
+      $("#battery_level_"+dom_id).children().hide();
+      $("#battery_level_"+dom_id+" .level_"+batt_label).show();
     };
 
     var dom = function() {
@@ -343,6 +360,7 @@
       classes = [ "chart_temp", "chart_humi", "chart_volt",
                   "gauge_temp", "gauge_humi", "gauge_volt",
                   "data_loading",
+                  "battery_level",
                   "time_label",
                   "time_plus1d", "time_minus1d",
                   "time_plus1w", "time_minus1w",
@@ -352,7 +370,8 @@
                dom_obj
                  .find("."+label)
                  .attr("id", label+"_"+dom_id)
-                 .click(!label.match(/^time_(plus|minus)/) ? null : function() {
+                 .filter(function() { return label.match(/^time_(plus|minus)/); } )
+                 .click(function() {
                    a = label.match(/time_(plus|minus)1([dwm])/);
                    if (loading && a[1] == "plus") {
                      debug("%s: not adding data while still loading");
@@ -368,7 +387,17 @@
                    clearTimeout(timeout_id);
                    timeout_id = setTimeout(get, 0);
                    debug("%s: rescale series of %d ms in the %s", name, Math.abs(tdiff), tdiff >= 0 ? "past" : "future");
-                 });
+                 })
+                 .end()
+                 .filter(function() { return label == "battery_level"; } )
+                 .click(function() {
+                   $("#chart_volt_"+dom_id+",#gauge_volt_"+dom_id).toggle();
+                   chart();
+                 })
+                 .end()
+                 .filter(function() { return (label.match(/^(gauge|chart)_volt$/)); })
+                 .hide()
+                 .end();
              });
       var head = dom_obj.find("h2").first();
       head.text(name);

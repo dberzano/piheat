@@ -18,6 +18,8 @@
   <script src="../js/moment-2.15.2.min.js"></script>
   <!-- Google Charts -->
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <!-- Font Awesome CDN -->
+  <script src="https://use.fontawesome.com/1a82ae31fc.js"></script>
   <!-- My script -->
   <script src="../js/mon-conf.js"></script>
   <script src="../js/mon.js"></script>
@@ -30,7 +32,16 @@
 <div id="sensor_model">
   <!-- http://stackoverflow.com/questions/5645986/two-column-div-layout-with-fluid-left-and-fixed-right-column -->
   <h2>Title Goes Here</h2>
-  <h3>Series starts <span class="time_label"></span> <span class="data_loading">&#x25CF;</span>
+  <h3>
+    <ul class="battery_level">
+      <li class="level_plug"><i class="fa fa-plug"></i></li>
+      <li class="level_100"><i class="fa fa-battery-full"></i></li>
+      <li class="level_75"><i class="fa fa-battery-three-quarters"></i></li>
+      <li class="level_50"><i class="fa fa-battery-half"></i></li>
+      <li class="level_25"><i class="fa fa-battery-quarter"></i></li>
+      <li class="level_0"><i class="fa fa-battery-empty"></i></li>
+    </ul>
+    Series starts <span class="time_label"></span> <span class="data_loading">&#x25CF;</span>
     <ul class="time_controls">
       <li class="time_plus1d">+1d</li>
       <li class="time_minus1d">-1d</li>

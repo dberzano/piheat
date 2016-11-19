@@ -48,7 +48,7 @@ h3:nth-of-type(3) { color: #1abc9c; }  /* flat: turquoise */
 h3:nth-of-type(4) { color: #3498db; }  /* flat: peter river */
 h3:nth-of-type(5) { color: #9b59b6; }  /* flat: amethyst */
 
-/* hover on +/- dates */
+/* hover on +/- dates and battery level */
 h3 ul li:hover { color: white; cursor: pointer; }
 h3:nth-of-type(1) li:hover { background-color: #e74c3c; }  /* flat: alizarin */
 h3:nth-of-type(2) li:hover { background-color: #f39c12; }  /* flat: orange */
