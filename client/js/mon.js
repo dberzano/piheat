@@ -5,7 +5,6 @@
   var chart_max = 2500;
   var bin_timespan = 10*60*1000;  // bin data within this interval
   var oldest_min = 24*60*60*1000;  // minimum value for the oldest parameter
-  var oldest = oldest_min;  // oldest data to request from server (count from now)
   var outdated = 5*60*1000;  // data older than this is outdated
   var oldest_tol = 10*60*1000;  // tolerance for oldest date
 
@@ -69,6 +68,7 @@
     var timeout = 45000;
     var timeout_id = null;
     var loading = false;
+    var oldest = oldest_min;
 
     var get = function() {
       if (timeout_id == null) { timeout_id = setTimeout(get, 0); return; }
@@ -121,6 +121,7 @@
           debug("%s: we have %d entries (+%d, -%d)", name, entries.length, count_new, count_rm);
 
           if (entries.length > 0 && new_entries.length > 0 &&
+              new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
               entries[entries.length-1].timestamp.getTime() > oldest_ts) {
             debug("%s: we need more data: next page will be %d", name, page+1);
             page++;
