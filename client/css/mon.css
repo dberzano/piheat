@@ -62,7 +62,7 @@ h3:nth-of-type(5) li:hover { background-color: #9b59b6; }  /* flat: amethyst */
 
 #sensor_model { display: none; }
 
-@media (min-width: 600px) {
+@media (min-width: 568px) {
   /* both charts and gauges */
   .chart_row { margin-right: 150px; }
   .trend_box { float:left;
@@ -75,7 +75,7 @@ h3:nth-of-type(5) li:hover { background-color: #9b59b6; }  /* flat: amethyst */
   .fliptip { display: none; }
 }
 
-@media (max-width: 599px) {
+@media (max-width: 567px) {
   .trend_box { display: none; }
   .cleared { display: none; }
   .wrapper { width: 100%;
