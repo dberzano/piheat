@@ -12,6 +12,7 @@ h2 { background-color: #95a5a6;  /* flat: concrete */
      font-size: 120%;
      padding-top: 4px;
      padding-left: 4px;
+     padding-right: 4px;
      height: 33px;
      width: 100%;
      position: relative;
@@ -40,6 +41,11 @@ h3 ul li { display: inline;
            padding-left: 2px;
            padding-right: 2px;
            list-style-type: none; }
+
+/* title and low battery in header */
+h2 .title { float: left; }
+h2 .battery_level { float: right;
+                    cursor: pointer; }
 
 /* text below title with oldest timestamp and control */
 h3:nth-of-type(1) { color: #e74c3c; }  /* flat: alizarin */

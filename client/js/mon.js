@@ -399,7 +399,7 @@
                  .hide()
                  .end();
              });
-      var head = dom_obj.find("h2").first();
+      var head = dom_obj.find("h2 .title").first();
       head.text(name);
       dom_obj.children().appendTo("#sensors_container");
     };
