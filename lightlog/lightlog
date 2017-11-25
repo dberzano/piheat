@@ -1,0 +1,114 @@
+#!/usr/bin/env python
+from __future__ import print_function
+from argparse import ArgumentParser
+import os, json, errno
+from os.path import expanduser, isdir, join, dirname
+from sys import exit
+from klein import Klein, run, route
+from twisted.internet.task import LoopingCall
+from twisted.internet import defer, task, reactor, threads
+from twisted.python import log
+from twisted.internet.defer import inlineCallbacks, returnValue
+from datetime import datetime
+from time import sleep
+
+store_prefix = None
+write_buffer = {}
+
+def jsonize(d, req=None):
+  if req:
+    req.setHeader("Content-Type", "application/json")
+  return json.dumps(d, default=lambda o: o.isoformat()+"Z" if isinstance(o, datetime) else o.__dict__)
+
+def mkdir_p(path):
+  try:
+    os.makedirs(path)
+  except OSError as e:
+    if e.errno == errno.EEXIST and isdir(path):
+      pass
+    else:
+      raise
+
+def shard_name(thing, year, month, day):
+  return join(store_prefix, thing, "%04d/%02d/%02d.json" % (year, month, day))
+
+@route("/write/<thing>", methods=["POST"])
+def write(req, thing):
+  global write_buffer
+  try:
+    buf = { k:float(v[0]) for (k,v) in req.args.iteritems() }
+    buf["timestamp"] = datetime.utcnow()
+  except ValueError:
+    req.setResponseCode(400)
+    return jsonize({"error": "only floats supported"}, req)
+  key = shard_name(thing, buf["timestamp"].year, buf["timestamp"].month, buf["timestamp"].day)
+  write_buffer[key] = write_buffer.get(key, []) + [buf]
+  return jsonize(buf, req)
+
+@route("/read/<thing>/<year>/<month>/<day>.json", methods=["GET"])
+@inlineCallbacks
+def read(req, thing, year, month, day):
+  req.setHeader("Access-Control-Allow-Origin", "*")
+  try:
+    year = int(year)
+    month = int(month)
+    day = int(day)
+  except ValueError:
+    req.setResponseCode(400)
+    errmsg = yield {"error": "invalid numbers in date"}
+    returnValue(jsonize(errmsg, req))
+  data = yield threads.deferToThread(async_read, thing, year, month, day)
+  returnValue(jsonize(data, req))
+
+def async_read(thing, year, month, day):
+  try:
+    fn = shard_name(thing, year, month, day)
+    with open(fn) as fp:
+      data = json.loads(fp.read())
+  except IOError:
+    log.msg("shard %s not found, returning empty data" % fn)
+    return []
+  except ValueError:
+    log.msg("JSON data is corrupted on shard %s" % fn)
+    return []
+  if fn in write_buffer:
+    data = data + write_buffer[fn]
+  return data
+
+@inlineCallbacks
+def dump_buf():
+  global write_buffer
+  if not write_buffer:
+    return
+  wb = write_buffer.copy()
+  write_buffer = {}
+  yield threads.deferToThread(async_dump_buf, wb)
+  log.msg("data dumped on store")
+
+def async_dump_buf(wb):
+  for sh,content in wb.items():
+    content.sort(key=lambda x: x["timestamp"])
+    try:
+      with open(sh) as fp:
+        content = json.loads(fp.read()) + content
+    except:
+      log.msg("cannot read shard %s from store, creating" % sh)
+    mkdir_p(dirname(sh))
+    with open(sh+".0", "w") as fp:
+      fp.write(jsonize(content))
+    os.rename(sh+".0", sh)  # atomic
+
+if __name__ == "__main__":
+  parser = ArgumentParser()
+  parser.add_argument("--store", dest="store", default="~/.lightlog",
+                      help="Where is the datastore")
+  parser.add_argument("--host", dest="host", default="localhost",
+                      help="Listen on this host")
+  parser.add_argument("--port", dest="port", default=4242, type=int,
+                      help="Listen on this port")
+  args = parser.parse_args()
+  store_prefix = expanduser(args.store)
+  dump_buf_task = task.LoopingCall(dump_buf)
+  dump_buf_task.start(10.)
+  run(args.host, args.port)
+  exit(0)
