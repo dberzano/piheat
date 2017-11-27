@@ -50,6 +50,11 @@
     return (new Date(Date.now() + offset)).toISOString();
   };
 
+  var shardsuffix = function(date) {
+    return sprintf("/%04d/%02d/%02d.json",
+                   date.getUTCFullYear(), date.getUTCMonth()+1, date.getUTCDate());
+  };
+
   // Sensors
   var SensorDisplay = function(name, url) {
 
@@ -68,7 +73,7 @@
     var evt_humi = null;
     var evt_volt = null;
     var dom_id = null;
-    var page = 1;
+    var shard_date = new Date();
     var timeout = 45000;
     var timeout_id = null;
     var loading = false;
@@ -91,9 +96,9 @@
         loading = true;
       }
 
-      $.get(url+"?page="+page)
+      $.get(url+shardsuffix(shard_date))
         .done(function(data) {
-          debug("%s: ok, page %d has %d entries", name, page, data.length);
+          debug("%s: ok, shard %s has %d entries", name, shardsuffix(shard_date), data.length);
           var new_entries = [];
           $.each(data, function(index, val) {
             var entry = { "timestamp": new Date(val.timestamp),
@@ -127,20 +132,22 @@
           if (entries.length > 0 && new_entries.length > 0 &&
               new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
               entries[entries.length-1].timestamp.getTime() > oldest_ts) {
-            debug("%s: we need more data: next page will be %d", name, page+1);
-            page++;
+            shard_date.setUTCDate(shard_date.getUTCDate()+1);
+            debug("%s: we need more data: next shard will be %s", name, shardsuffix(shard_date));
             timeout = 0;
           }
           else {
             // Deactivates blinking of the loading sign
             loading = false;
             $("#data_loading_"+dom_id).unbind("fade-cycle");
-            page = 1;
+            shard_date = new Date();
+            debug("loading done")
             timeout = 45000;
           }
         })
         .fail(function() {
-          debug("%s: could not load data this time from page %d, we'll retry in 5 s", name, page);
+          debug("%s: could not load data this time from shard %s, we will retry in 5 s",
+                name, shardsuffix(shard_date));
           timeout = 5000;
         })
         .always(function() {
@@ -383,7 +390,7 @@
                    tdiff *= a[1] == "minus" ? -1 : 1;
                    oldest += tdiff;
                    if (oldest < oldest_min) oldest = oldest_min;
-                   page = 1;
+                   shard_date = new Date();
                    clearTimeout(timeout_id);
                    timeout_id = setTimeout(get, 0);
                    debug("%s: rescale series of %d ms in the %s", name, Math.abs(tdiff), tdiff >= 0 ? "past" : "future");
