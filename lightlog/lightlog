@@ -58,6 +58,8 @@ def read(req, thing, year, month, day):
     errmsg = yield {"error": "invalid numbers in date"}
     returnValue(jsonize(errmsg, req))
   data = yield threads.deferToThread(async_read, thing, year, month, day)
+  if not data:
+    req.setResponseCode(404)
   returnValue(jsonize(data, req))
 
 def async_read(thing, year, month, day):

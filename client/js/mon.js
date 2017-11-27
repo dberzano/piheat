@@ -97,60 +97,72 @@
       }
 
       $.get(url+shardsuffix(shard_date))
-        .done(function(data) {
-          debug("%s: ok, shard %s has %d entries", name, shardsuffix(shard_date), data.length);
-          var new_entries = [];
-          $.each(data, function(index, val) {
-            var entry = { "timestamp": new Date(val.timestamp),
-                          "temp": parseFloat(val.temp),
-                          "humi": parseInt(val.humi),
-                          "volt": "volt" in val ? parseFloat(val.volt) : -1 };
-            if (!isvalid(entry, ["timestamp", "temp", "humi", "volt"])) return true;
-            new_entries.push(entry);
-          });
+        .always(function(data) {
+          // First parameter is xhr on failure, data on success
 
-          oldest_ts = new Date().getTime()-oldest;
-          count_new = 0;
-          for (i=0; i<new_entries.length; i++) {
-            a = new_entries[i].timestamp.getTime();
-            if (a <= oldest_ts-oldest_tol) continue;
-            skip = false;
-            for (j=0; j<entries.length; j++) {
-              b = entries[j].timestamp.getTime();
-              if (a == b) { skip = true; break; }
-              else if (a > b) { break; }
+          if (data.status == 404) {
+            // Data might be served statically: 404 is empty, not an error
+            debug("%s: interpreting 404 as empty response", name)
+            data = [];
+          }
+          else if (!isNaN(data.status) && data.status != 200) {
+            // Actual error
+            debug("%s: could not load data this time from shard %s (%d), we will retry in 5 s",
+                  name, shardsuffix(shard_date), data.status);
+            timeout = 5000;
+          }
+
+          if (data.constructor === Array) {
+            // Success
+            debug("%s: ok, shard %s has %d entries", name, shardsuffix(shard_date), data.length);
+            var new_entries = [];
+            $.each(data, function(index, val) {
+              var entry = { "timestamp": new Date(val.timestamp),
+                            "temp": parseFloat(val.temp),
+                            "humi": parseInt(val.humi),
+                            "volt": "volt" in val ? parseFloat(val.volt) : -1 };
+              if (!isvalid(entry, ["timestamp", "temp", "humi", "volt"])) return true;
+              new_entries.push(entry);
+            });
+
+            oldest_ts = new Date().getTime()-oldest;
+            count_new = 0;
+            for (i=0; i<new_entries.length; i++) {
+              a = new_entries[i].timestamp.getTime();
+              if (a <= oldest_ts-oldest_tol) continue;
+              skip = false;
+              for (j=0; j<entries.length; j++) {
+                b = entries[j].timestamp.getTime();
+                if (a == b) { skip = true; break; }
+                else if (a > b) { break; }
+              }
+              if (!skip) { entries.splice(j, 0, new_entries[i]); count_new++; }
             }
-            if (!skip) { entries.splice(j, 0, new_entries[i]); count_new++; }
-          }
-          count_rm = 0;
-          for (i=entries.length-1; i>=0; i--) {
-            a = entries[i].timestamp.getTime();
-            if (a <= oldest_ts-oldest_tol) { entries.pop(); count_rm++; }
-          }
-          debug("%s: we have %d entries (+%d, -%d)", name, entries.length, count_new, count_rm);
+            count_rm = 0;
+            for (i=entries.length-1; i>=0; i--) {
+              a = entries[i].timestamp.getTime();
+              if (a <= oldest_ts-oldest_tol) { entries.pop(); count_rm++; }
+            }
+            debug("%s: we have %d entries (+%d, -%d)", name, entries.length, count_new, count_rm);
 
-          if (entries.length > 0 && new_entries.length > 0 &&
-              new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
-              entries[entries.length-1].timestamp.getTime() > oldest_ts) {
-            shard_date.setUTCDate(shard_date.getUTCDate()+1);
-            debug("%s: we need more data: next shard will be %s", name, shardsuffix(shard_date));
-            timeout = 0;
+            if (entries.length > 0 && new_entries.length > 0 &&
+                new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
+                entries[entries.length-1].timestamp.getTime() > oldest_ts) {
+              shard_date.setUTCDate(shard_date.getUTCDate()+1);
+              debug("%s: we need more data: next shard will be %s", name, shardsuffix(shard_date));
+              timeout = 0;
+            }
+            else {
+              // Deactivates blinking of the loading sign
+              loading = false;
+              $("#data_loading_"+dom_id).unbind("fade-cycle");
+              shard_date = new Date();
+              debug("loading done")
+              timeout = 45000;
+            }
           }
-          else {
-            // Deactivates blinking of the loading sign
-            loading = false;
-            $("#data_loading_"+dom_id).unbind("fade-cycle");
-            shard_date = new Date();
-            debug("loading done")
-            timeout = 45000;
-          }
-        })
-        .fail(function() {
-          debug("%s: could not load data this time from shard %s, we will retry in 5 s",
-                name, shardsuffix(shard_date));
-          timeout = 5000;
-        })
-        .always(function() {
+
+          // Always
           chart();
           timeout_id = setTimeout(get, timeout);
         });
