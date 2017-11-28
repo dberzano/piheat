@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from argparse import ArgumentParser
-import os, json, errno
+import os, json, errno, subprocess
 from os.path import expanduser, isdir, join, dirname
 from sys import exit
 from klein import Klein, run, route
@@ -13,6 +13,8 @@ from datetime import datetime
 from time import sleep
 
 store_prefix = None
+after_dump_cmd = None
+cmd_timeout = None
 write_buffer = {}
 
 def jsonize(d, req=None):
@@ -85,7 +87,6 @@ def dump_buf():
   wb = write_buffer.copy()
   write_buffer = {}
   yield threads.deferToThread(async_dump_buf, wb)
-  log.msg("data dumped on store")
 
 def async_dump_buf(wb):
   for sh,content in wb.items():
@@ -99,18 +100,48 @@ def async_dump_buf(wb):
     with open(sh+".0", "w") as fp:
       fp.write(jsonize(content))
     os.rename(sh+".0", sh)  # atomic
+  run_after_dump_cmd()
+
+def run_after_dump_cmd():
+  if not after_dump_cmd:
+    return 0
+  cmd = after_dump_cmd.format(store_prefix=store_prefix)
+  log.msg("running after dump command")
+  popen = subprocess.Popen([ "timeout", "-s", "9", str(cmd_timeout), "bash", "-c", cmd ],
+                           shell=False, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  out = popen.communicate()[0]
+  log.msg("after dump command returned %d" % popen.returncode)
+  if popen.returncode != 0:
+    for line in out.split("\n"):
+      log.msg("error %d: %s" % (popen.returncode, line))
+  return popen.returncode
+
+@inlineCallbacks
+def schedule_init_dump(every):
+  log.msg("executing initial after dump command")
+  rv = yield threads.deferToThread(run_after_dump_cmd)
+  log.msg("scheduling dump every %d s" % every)
+  dump_task = task.LoopingCall(dump_buf)
+  dump_task.start(every)
 
 if __name__ == "__main__":
   parser = ArgumentParser()
   parser.add_argument("--store", dest="store", default="~/.lightlog",
                       help="Where is the datastore")
+  parser.add_argument("--after-dump-cmd", dest="after_dump_cmd", default="",
+                      help="Command to execute after writing data")
   parser.add_argument("--host", dest="host", default="localhost",
                       help="Listen on this host")
   parser.add_argument("--port", dest="port", default=4242, type=int,
                       help="Listen on this port")
+  parser.add_argument("--dump-every", dest="sync_every", default=300, type=int,
+                      help="Dump data every SYNC_EVERY seconds")
+  parser.add_argument("--cmd-timeout", dest="cmd_timeout", default=60, type=int,
+                      help="Kill after dump command after CMD_TIMEOUT seconds")
   args = parser.parse_args()
   store_prefix = expanduser(args.store)
-  dump_buf_task = task.LoopingCall(dump_buf)
-  dump_buf_task.start(10.)
+  after_dump_cmd = args.after_dump_cmd
+  cmd_timeout = args.cmd_timeout
+  reactor.callLater(2, schedule_init_dump, args.sync_every)
   run(args.host, args.port)
   exit(0)
