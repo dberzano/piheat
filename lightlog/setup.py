@@ -1,13 +1,19 @@
 from setuptools import setup, find_packages
 from codecs import open
 from os import path
-import pypandoc
+try:
+  import pypandoc
+  def readme_to_rst():
+    return "\n".join([ l for l in pypandoc.convert_file("README.md", "rst").split("\n") if not "PyPI version" in l ])
+except ImportError:
+  def readme_to_rst():
+    return ""
 
 setup(
   name='lightlog',
   version='0.0.1',
   description='Lightweight logger for sensors data',
-  long_description="\n".join([ l for l in pypandoc.convert_file("README.md", "rst").split("\n") if not "PyPI version" in l ]),
+  long_description=readme_to_rst(),
   url='https://github.com/alisw/release-validation',
   author='Dario Berzano',
   author_email='dario.berzano@gmail.com',
