@@ -176,6 +176,12 @@ function postdata(callback)
 end
 
 function entrypoint()
+  if adc.readvdd33() == 65535 then
+    -- ADC can either read pins, or internal voltage, not both.
+    -- We reconfigure it once for all and restart.
+    adc.force_init_mode(adc.INIT_VDD33)
+    node.restart()
+  end
   starttime = tmr.now()
   tmr.unregister(2)
   tmr.alarm(2, WATCHDOG_MS, tmr.ALARM_SINGLE,
