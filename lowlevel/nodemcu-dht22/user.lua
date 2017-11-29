@@ -21,7 +21,10 @@ GPIO_ERRLED  = 6
 starttime = 0
 volt      = 0
 temp      = 0
+temp_dec  = 0
 humi      = 0
+humi_dec  = 0
+dhtstatus = 0
 
 function wificonn(callback)
   wifi.setmode(wifi.STATION)
@@ -76,25 +79,20 @@ function siren(times)
 end
 
 function getsensor()
-  print("DHT22: power up")
+  print("dhtxx: power up")
   gpio.mode(GPIO_DHTPWR, gpio.OUTPUT)
   gpio.write(GPIO_DHTPWR, gpio.HIGH)
   tmr.delay(1100000)
-  print("DHT22: reading")
-  DHT = require("dht22_min")
-  DHT.read(GPIO_DHT)
-  temp = DHT.getTemperature()
-  humi = DHT.getHumidity()
+  print("dhtxx: reading")
+  dhtstatus,temp,humi,temp_dec,humi_dec = dht.readxx(GPIO_DHT)
   gpio.write(GPIO_DHTPWR, gpio.LOW)
 
-  if humi == nil then
-    print("DHT22: error reading")
+  if dhtstatus ~= dht.OK then
+    print("dhtxx: error reading")
   else
-    print("DHT22: temp="..(temp / 10).."."..(temp % 10).."degC, "..
-                 "humi="..(humi / 10).."."..(humi % 10).."%")
+    print("dhtxx: temp="..temp.."."..temp_dec.."degC, "..
+                 "humi="..humi.."."..humi_dec.."%")
   end
-  DHT = nil
-  package.loaded["dht22_min"] = nil
 end
 
 function deepsleep(callback)
@@ -121,14 +119,34 @@ function postdata(callback)
   path = string.gsub(host, "^[^/]*", "")
   host = string.gsub(host, "/.*", "")
 
+  -- Split host into host and port (defaults to 80)
+  port = string.gsub(host, "^[^:]*:?", "")
+  if port == "" then
+    port = 80
+  else
+    port = tonumber(port)
+  end
+  host = string.gsub(host, ":.*", "")
+
   -- Put data into the path string
-  path = string.gsub(path, "@@TEMP@@", (temp/10).."."..(temp%10))
-  path = string.gsub(path, "@@HUMI@@", (humi/10).."."..(humi%10))
+  path = string.gsub(path, "@@TEMP@@", temp.."."..temp_dec)
+  path = string.gsub(path, "@@HUMI@@", humi.."."..humi_dec)
   path = string.gsub(path, "@@VOLT@@", (volt/1000).."."..(volt%1000))
 
-  -- Send data
-  print("Post: posting to URL http://"..host..path)
+  -- TCP socket
+  print("Post: posting to URL http://"..host..":"..port..path)
   conn = net.createConnection(net.TCP, 0)
+  conn:on("connection",
+          function(conn)
+            req = "POST "..path.." HTTP/1.1\r\n"..
+                  "Host: "..host.."\r\n"..
+                  "Content-Type: application/x-www-form-urlencoded\r\n"..
+                  "Connection: keep-alive\r\n"..
+                  "Accept: */*\r\n\r\n"
+            print("Post: connected, sending data")
+            conn:send(req)
+            print("=== REQUEST ===\n"..req.."\n=== END REQUEST ===")
+          end)
   conn:on("receive",
           function(conn, payload)
             print("=== RESPONSE ===\n"..payload.."\n=== END RESPONSE ===")
@@ -137,23 +155,24 @@ function postdata(callback)
             print("Post: connection completed")
             callback()
           end)
+
+  if string.gsub(host, "[0-9.]", "") == "" then
+    -- Direct IP address
+    print("Post: direct IP connection to "..host)
+    conn:connect(port, host)
+  else
+    print("Post: resolving address")
     conn:dns(host,
              function(conn, ip)
                if ip == nil then
-                 print("Post: cannot resolve ".. host)
+                 print("Post: cannot resolve "..host)
                  return
                end
-               print("Post: host "..host.." has IP "..ip)
-               conn:connect(80, ip)
-               req = "POST "..path.." HTTP/1.1\r\n"..
-                     "Host: "..host.."\r\n"..
-                     "Content-Type: application/x-www-form-urlencoded\r\n"..
-                     "Connection: keep-alive\r\n"..
-                     "Accept: */*\r\n\r\n"
-               conn:send(req)
-               print("=== REQUEST ===\n"..req.."\n=== END REQUEST ===")
+               print("Post: resolved to "..ip)
+               conn:connect(port, ip)
              end)
-    print("Post: waiting for connection to complete")
+  end
+  print("Post: waiting for connection to complete")
 end
 
 function entrypoint()
@@ -171,8 +190,7 @@ function entrypoint()
                            tmr.alarm(3, 1000, tmr.ALARM_SINGLE,
                            function()
                              getsensor()
-                             if humi == nil then
-                               print("humi is nil")
+                             if dhtstatus ~= dht.OK then
                                deepsleep(entrypoint)
                              end
                              postdata(function()
