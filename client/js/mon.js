@@ -151,7 +151,7 @@
             if (entries.length > 0 && new_entries.length > 0 &&
                 new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
                 entries[entries.length-1].timestamp.getTime() > oldest_ts) {
-              shard_date.setUTCDate(shard_date.getUTCDate()+1);
+              shard_date.setUTCDate(shard_date.getUTCDate()-1);
               debug("%s: we need more data", name);
               timeout = 0;
             }
