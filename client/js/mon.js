@@ -96,7 +96,10 @@
         loading = true;
       }
 
-      $.get(url+shardsuffix(shard_date))
+      shard_path = shardsuffix(shard_date)
+      unique_suffix = "?now="+Date.now()+"&random="+Math.floor(Math.random()*1000000000)
+      debug("%s: loading shard %s as %s%s%s", name, shard_path, url, shard_path, unique_suffix)
+      $.get(url+shard_path+unique_suffix)
         .always(function(data) {
           // First parameter is xhr on failure, data on success
 
@@ -108,13 +111,13 @@
           else if (!isNaN(data.status) && data.status != 200) {
             // Actual error
             debug("%s: could not load data this time from shard %s (%d), we will retry in 5 s",
-                  name, shardsuffix(shard_date), data.status);
+                  name, shard_path, data.status);
             timeout = 5000;
           }
 
           if (data.constructor === Array) {
             // Success
-            debug("%s: ok, shard %s has %d entries", name, shardsuffix(shard_date), data.length);
+            debug("%s: ok, shard %s has %d entries", name, shard_path, data.length);
             var new_entries = [];
             $.each(data, function(index, val) {
               var entry = { "timestamp": new Date(val.timestamp),
@@ -149,7 +152,7 @@
                 new_entries[new_entries.length-1].timestamp.getTime() > oldest_ts &&
                 entries[entries.length-1].timestamp.getTime() > oldest_ts) {
               shard_date.setUTCDate(shard_date.getUTCDate()+1);
-              debug("%s: we need more data: next shard will be %s", name, shardsuffix(shard_date));
+              debug("%s: we need more data", name);
               timeout = 0;
             }
             else {
@@ -157,7 +160,7 @@
               loading = false;
               $("#data_loading_"+dom_id).unbind("fade-cycle");
               shard_date = new Date();
-              debug("loading done")
+              debug("%s: loading done", name)
               timeout = 45000;
             }
           }
