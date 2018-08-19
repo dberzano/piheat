@@ -1,4 +1,6 @@
 @import url(https://fonts.googleapis.com/css?family=Montserrat);
+@import url(weather-icons.min.css);
+@import url(weather-icons-wind.min.css);
 
 html { margin: 0px; }
 
@@ -42,8 +44,13 @@ h3 ul li { display: inline;
            padding-right: 2px;
            list-style-type: none; }
 
-/* title and low battery in header */
+/* title, weather, battery in header */
 h2 .title { float: left; }
+h2 .weather { float: left;
+              margin-left: 10px;
+              font-size: 70%;
+              font-weight: normal;
+              padding-top: 4px; }
 h2 .battery_level { float: right;
                     cursor: pointer; }
 

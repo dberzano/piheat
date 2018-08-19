@@ -56,7 +56,7 @@
   };
 
   // Sensors
-  var SensorDisplay = function(name, url) {
+  var SensorDisplay = function(name, url, woeid) {
 
     var entries = [];
     var chart_temp = null;
@@ -76,11 +76,37 @@
     var shard_date = new Date();
     var timeout = 45000;
     var timeout_id = null;
+    var weather_timestamp = 0;
+    var weather_every = 1800000;  // 30 min
     var loading = false;
     var oldest = oldest_min;
 
     var get = function() {
       if (timeout_id == null) { timeout_id = setTimeout(get, 0); return; }
+
+      // Update Yahoo! Weather info if appropriate
+      if (woeid > -1 && (new Date()).getTime()-weather_timestamp > weather_every) {
+        yahoo_weather_url = "https://query.yahooapis.com/v1/public/yql?q=select%20item.condition%20from%20weather.forecast%20where%20woeid%20%3D%20" + woeid + "&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
+        $.get(yahoo_weather_url)
+          .done(function(data) {
+            yahoo_weather_code = undefined;
+            temp_f = undefined;
+            try {
+              yahoo_weather_code = data.query.results.channel.item.condition.code;
+              temp_f = data.query.results.channel.item.condition.temp;
+              if (yahoo_weather_code === undefined || temp_f === undefined) {
+                throw "";
+              }
+            }
+            catch (e) {
+              debug("%s: could not load Yahoo! Weather information for WOEID %d", name, woeid);
+              return;
+            }
+            temp_c = Math.round(10. * (temp_f - 32.) / 1.8) / 10;
+            $("#weather_"+dom_id).html(setWeatherIcon(yahoo_weather_code) + " " + temp_c + "°C");
+            weather_timestamp = new Date();
+          });
+      }
 
       // Activates blinking of the loading sign
       if (!loading) {
@@ -383,6 +409,7 @@
                   "gauge_temp", "gauge_humi", "gauge_volt",
                   "data_loading",
                   "battery_level",
+                  "weather",
                   "time_label",
                   "time_plus1d", "time_minus1d",
                   "time_plus1w", "time_minus1w",
@@ -436,7 +463,7 @@
   var main = function() {
     mon_conf = mon_conf ? mon_conf : [];
     $.each(mon_conf, function(index, entry) {
-      SensorDisplay(entry.name, entry.url);
+      SensorDisplay(entry.name, entry.url, entry.woeid);
     });
   };
 
