@@ -86,15 +86,22 @@
 
       // Update Yahoo! Weather info if appropriate
       if (woeid > -1 && (new Date()).getTime()-weather_timestamp > weather_every) {
-        yahoo_weather_url = "https://query.yahooapis.com/v1/public/yql?q=select%20item.condition%20from%20weather.forecast%20where%20woeid%20%3D%20" + woeid + "&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
+        yahoo_weather_url = "https://query.yahooapis.com/v1/public/yql?q=select%20wind,item.condition%20from%20weather.forecast%20where%20woeid%20%3D%20" + woeid + "&format=json&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys";
         $.get(yahoo_weather_url)
           .done(function(data) {
             yahoo_weather_code = undefined;
             temp_f = undefined;
+            wind_kmh = undefined;
+            wind_deg = undefined;
             try {
               yahoo_weather_code = data.query.results.channel.item.condition.code;
               temp_f = data.query.results.channel.item.condition.temp;
-              if (yahoo_weather_code === undefined || temp_f === undefined) {
+              wind_kmh = data.query.results.channel.wind.speed;
+              wind_deg = data.query.results.channel.wind.direction;
+              if (yahoo_weather_code === undefined ||
+                  temp_f === undefined ||
+                  wind_kmh === undefined ||
+                  wind_deg === undefined) {
                 throw "";
               }
             }
@@ -103,7 +110,12 @@
               return;
             }
             temp_c = Math.round(10. * (temp_f - 32.) / 1.8) / 10;
-            $("#weather_"+dom_id).html(setWeatherIcon(yahoo_weather_code) + " " + temp_c + "°C");
+            $("#weather_"+dom_id).html(
+              setWeatherIcon(yahoo_weather_code) + " " +
+              temp_c + " °C" +
+              "&nbsp;&nbsp;&nbsp;" +
+              "<i class=\"wi wi-wind towards-" + wind_deg + "-deg\"></i> " +
+              wind_kmh + " km/h");
             weather_timestamp = new Date();
           });
       }

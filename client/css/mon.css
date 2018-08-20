@@ -48,9 +48,9 @@ h3 ul li { display: inline;
 h2 .title { float: left; }
 h2 .weather { float: left;
               margin-left: 10px;
-              font-size: 70%;
+              font-size: 65%;
               font-weight: normal;
-              padding-top: 4px; }
+              padding-top: 5px; }
 h2 .battery_level { float: right;
                     cursor: pointer; }
 
